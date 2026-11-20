@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       script_path:
-        description: 'Path to script JSON (or type ALL to render all ep01 scripts)'
+        description: 'Path to script JSON (or type ALL to render all ep03 scripts)'
         required: true
         default: 'ALL'
 
@@ -20,8 +20,8 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Install FFmpeg and Fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +29,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install edge-tts requests google-api-python-client google-auth
+        run: pip install edge-tts requests google-api-python-client google-auth matplotlib numpy
 
       - name: Render, Backup to 5TB Drive, and Stage to YouTube
         env:
@@ -43,7 +43,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.script_path }}" == "ALL" ]; then
-              for file in scripts/**/ep01.json; do
+              for file in scripts/**/ep03.json; do
                 [ -f "$file" ] && python cloud_builder.py "$file"
               done
             else
