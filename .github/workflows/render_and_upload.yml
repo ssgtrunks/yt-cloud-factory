@@ -4,12 +4,15 @@ on:
   push:
     paths:
       - 'scripts/**/*.json'
+  schedule:
+    # Runs automatically every Sunday at 10:00 AM IST (04:30 UTC) while laptop is off
+    - cron: '30 4 * * 0'
   workflow_dispatch:
     inputs:
       script_path:
-        description: 'Path to script JSON (or type ALL to render all ep03 scripts)'
+        description: 'Path to script JSON (or type NEXT to render next queued episode across all channels)'
         required: true
-        default: 'ALL'
+        default: 'NEXT'
 
 jobs:
   build-video:
@@ -20,8 +23,18 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install FFmpeg and Fonts
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation
+      - name: Install FFmpeg, Fonts, and Headless Browser Libs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-liberation libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Remotion packages
+        run: npm install
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,9 +42,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install edge-tts requests google-api-python-client google-auth matplotlib numpy
+        run: pip install edge-tts requests google-api-python-client google-auth
 
-      - name: Render, Backup to 5TB Drive, and Stage to YouTube
+      - name: Render Remotion Video, Backup to 5TB Drive, and Stage to YouTube
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -41,20 +54,23 @@ jobs:
           YT_TOKEN_WORKFLOWSTACK: ${{ secrets.YT_TOKEN_WORKFLOWSTACK }}
           YT_TOKEN_MARKETANATOMY: ${{ secrets.YT_TOKEN_MARKETANATOMY }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.script_path }}" == "ALL" ]; then
-              for file in scripts/**/ep03.json; do
-                [ -f "$file" ] && python cloud_builder.py "$file"
-              done
-            else
-              python cloud_builder.py "${{ github.event.inputs.script_path }}"
-            fi
-          else
+          if [ "${{ github.event_name }}" == "push" ]; then
             CHANGED_JSON=$(git diff --name-only HEAD~1 HEAD -- 'scripts/**/*.json')
             for file in $CHANGED_JSON; do
               if [ -f "$file" ]; then
-                echo "Processing $file"
+                echo "Processing newly pushed script: $file"
                 python cloud_builder.py "$file"
+              fi
+            done
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.script_path }}" != "NEXT" ]; then
+            python cloud_builder.py "${{ github.event.inputs.script_path }}"
+          else
+            # Weekly Sunday Cron or manual NEXT trigger: picks the latest episode per channel folder
+            for dir in scripts/*/; do
+              LATEST=$(ls -1 "$dir"ep*.json 2>/dev/null | sort | tail -n 1)
+              if [ -f "$LATEST" ]; then
+                echo "Scheduled weekly batch rendering: $LATEST"
+                python cloud_builder.py "$LATEST"
               fi
             done
           fi
