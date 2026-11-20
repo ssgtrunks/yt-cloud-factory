@@ -418,4 +418,7 @@ def main(script_json_path):
 
     total_dur = get_duration(raw_concat)
     final_mp4 = f"{work_dir}/{data['drive_folder']}_{data['episode_id']}.mp4"
-    ambient_expr = f"aevalsrc=0.012*sin(2*PI*110*t)+0.008*
+    ambient_expr = (
+        f"aevalsrc=0.012*sin(2*PI*110*t)+0.008*sin(2*PI*164.81*t)"
+        f"+0.006*sin(2*PI*220*t):s=44100:d={total_dur}"
+    )
