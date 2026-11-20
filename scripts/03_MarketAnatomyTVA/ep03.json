@@ -21,9 +21,17 @@
   "scenes": [
     {
       "scene_number": 1,
-      "callout_text": "01 // THE PORT BOTTLENECK",
-      "visual_query": "cargo ship",
-      "narration": "Before nineteen fifty-six, loading a single merchant vessel required hundreds of dockworkers hauling loose sacks and wooden crates one by one. Ships spent half their lives sitting idle in port, making international trade slow and prohibitively expensive."
+      "callout_text": "01 // THE 1956 PORT BOTTLENECK",
+      "chart": {
+        "type": "kpi",
+        "title": "Pre-Container Ocean Freight Inefficiency",
+        "subtitle": "Why global shipping was slow and expensive before 1956",
+        "labels": ["Ship Time Idle in Port", "Freight Share of Retail Price", "Days to Unload 1 Vessel"],
+        "values": [55, 25, 14],
+        "unit": "% / Days",
+        "color": "#38BDF8"
+      },
+      "narration": "Before nineteen fifty-six, loading a single merchant vessel required hundreds of dockworkers hauling loose sacks and wooden crates one by one. Ships spent more than half their lives sitting idle in port, making international trade slow and prohibitively expensive."
     },
     {
       "scene_number": 2,
@@ -41,7 +49,8 @@
     {
       "scene_number": 3,
       "callout_text": "03 // GLOBAL INTERMODAL NETWORK",
-      "visual_query": "container port",
+      "visual_query": "earth night lights",
+      "highlight_stat": "90% OF GLOBAL TRADE BY SEA",
       "narration": "Within two decades, global ports rebuilt around automated gantry cranes and intermodal rail links. That single logistics breakthrough turned isolated regional factories into today's interconnected global supply chain."
     }
   ]
