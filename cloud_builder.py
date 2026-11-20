@@ -1,11 +1,10 @@
 import os
 import sys
+import glob
 import json
-import time
 import shutil
 import asyncio
 import subprocess
-import requests
 import edge_tts
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -22,8 +21,10 @@ CHANNEL_TOKEN_MAP = {
     "@MarketAnatomyTVA": os.environ.get("YT_TOKEN_MARKETANATOMY", "").strip(),
 }
 
-HEADERS = {
-    "User-Agent": "YTCloudFactoryBot/5.0 (https://github.com/ssgtrunks/yt-cloud-factory; contact: dbs.ssgtrunks@gmail.com)"
+DEFAULT_THEMES = {
+    "@CapLedger": ("glass_neon", "#38BDF8"),
+    "@WorkflowStack-AI": ("cyber_dark", "#10B981"),
+    "@MarketAnatomyTVA": ("modern_bento", "#059669"),
 }
 
 def build_service(service_name, version, refresh_token):
@@ -58,7 +59,6 @@ async def generate_tts_with_words(text, audio_path, voice):
                     "endSec": round(start_sec + dur_sec, 3),
                 })
 
-    # Fallback word timing synthesizer if edge-tts omits WordBoundary events
     if not words:
         total_audio_dur = max(1.0, get_duration(audio_path) - 0.15)
         tokens = [w for w in text.strip().split() if w]
@@ -74,122 +74,6 @@ async def generate_tts_with_words(text, audio_path, voice):
             cursor += w_dur
     return words
 
-def verify_hd_video(path, min_width=1200):
-    if not os.path.exists(path) or os.path.getsize(path) < 100_000:
-        return False
-    probe = subprocess.run(
-        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path],
-        capture_output=True, text=True
-    )
-    if probe.returncode != 0 or not probe.stdout.strip():
-        return False
-    try:
-        w, h = map(int, probe.stdout.strip().split(","))
-        return w >= min_width and w > h
-    except Exception:
-        return False
-
-def fetch_wikimedia_hd_video(query, out_path, used_urls):
-    for q in [query, f"{query} timelapse", "container ship ocean", "city skyline timelapse"]:
-        try:
-            time.sleep(1.2)
-            params = {
-                "action": "query",
-                "format": "json",
-                "generator": "search",
-                "gsrsearch": f"{q} filetype:video",
-                "gsrnamespace": 6,
-                "gsrlimit": 10,
-                "prop": "videoinfo",
-                "viprop": "url|size|dimensions",
-            }
-            res = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=HEADERS, timeout=20).json()
-            for page in res.get("query", {}).get("pages", {}).values():
-                vinfo = page.get("videoinfo", [{}])[0]
-                vid_url = vinfo.get("url", "")
-                size = vinfo.get("size", 0)
-                w = vinfo.get("width", 0)
-                if not vid_url or vid_url in used_urls or size > 55_000_000 or w < 1280:
-                    continue
-                if vid_url.lower().endswith(".mp4"):
-                    r = requests.get(vid_url, headers=HEADERS, stream=True, timeout=45)
-                    if r.status_code == 200:
-                        with open(out_path, "wb") as f:
-                            for chunk in r.iter_content(chunk_size=16384):
-                                f.write(chunk)
-                        if verify_hd_video(out_path, min_width=1280):
-                            used_urls.add(vid_url)
-                            print(f"  -> Matched 1080p Wikimedia MP4 ({q}, {w}px)")
-                            return True
-        except Exception as e:
-            print(f"  -> Wikimedia HD video note ({q}): {e}")
-    return False
-
-def fetch_nasa_hd_video(query, out_path, used_urls):
-    for q in [query, "earth night lights", "satellite orbit", "supercomputer"]:
-        try:
-            res = requests.get(
-                "https://images-api.nasa.gov/search",
-                params={"q": q, "media_type": "video"},
-                headers=HEADERS,
-                timeout=20,
-            ).json()
-            for item in res.get("collection", {}).get("items", [])[:8]:
-                href = item.get("href")
-                if not href or href in used_urls:
-                    continue
-                assets = requests.get(href, headers=HEADERS, timeout=15).json()
-                hd_mp4s = [a for a in assets if a.endswith("~large.mp4") or a.endswith("~medium.mp4")]
-                if hd_mp4s:
-                    r = requests.get(hd_mp4s[0], headers=HEADERS, stream=True, timeout=45)
-                    if r.status_code == 200:
-                        with open(out_path, "wb") as f:
-                            for chunk in r.iter_content(chunk_size=16384):
-                                f.write(chunk)
-                        if verify_hd_video(out_path, min_width=1200):
-                            used_urls.add(href)
-                            print(f"  -> Matched NASA 1080p HD MP4 ({q})")
-                            return True
-        except Exception as e:
-            print(f"  -> NASA HD note ({q}): {e}")
-    return False
-
-def fetch_wikimedia_hd_photo(query, out_path, used_urls):
-    for q in [query, "modern architecture skyline", "global finance"]:
-        try:
-            params = {
-                "action": "query",
-                "format": "json",
-                "generator": "search",
-                "gsrsearch": q,
-                "gsrnamespace": 6,
-                "gsrlimit": 12,
-                "prop": "imageinfo",
-                "iiprop": "url|size|mime",
-                "iiurlwidth": 1920,
-            }
-            res = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=HEADERS, timeout=20).json()
-            for page in res.get("query", {}).get("pages", {}).values():
-                title = page.get("title", "").lower()
-                if any(bad in title for bad in ["poster", "cartoon", "logo", "cover", "book"]):
-                    continue
-                iinfo = page.get("imageinfo", [{}])[0]
-                w = iinfo.get("width", 0)
-                h = iinfo.get("height", 0)
-                if iinfo.get("mime") == "image/jpeg" and w >= 1600 and w > h:
-                    u = iinfo.get("thumburl") or iinfo.get("url", "")
-                    if u and u not in used_urls:
-                        r = requests.get(u, headers=HEADERS, timeout=30)
-                        if r.status_code == 200:
-                            with open(out_path, "wb") as f:
-                                f.write(r.content)
-                            used_urls.add(u)
-                            print(f"  -> Matched 1920px HD Photo ({q}, {w}px)")
-                            return True
-        except Exception as e:
-            print(f"  -> HD photo note ({q}): {e}")
-    return False
-
 def get_or_create_drive_subfolder(drive, parent_id, folder_name):
     q = f"name='{folder_name}' and '{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
     res = drive.files().list(
@@ -199,6 +83,13 @@ def get_or_create_drive_subfolder(drive, parent_id, folder_name):
         return res[0]["id"]
     meta = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_id]}
     return drive.files().create(body=meta, fields="id", supportsAllDrives=True).execute()["id"]
+
+def file_exists_in_drive(drive, folder_id, filename):
+    q = f"name='{filename}' and '{folder_id}' in parents and trashed=false"
+    res = drive.files().list(
+        q=q, fields="files(id)", supportsAllDrives=True, includeItemsFromAllDrives=True
+    ).execute().get("files", [])
+    return len(res) > 0
 
 def upload_to_drive(drive, folder_id, file_path, mime_type):
     meta = {"name": os.path.basename(file_path), "parents": [folder_id]}
@@ -225,7 +116,7 @@ def upload_to_youtube(youtube, video_path, data):
     response = youtube.videos().insert(part="snippet,status", body=body, media_body=media).execute()
     print(f"Uploaded to {data['channel_handle']}! Video ID: {response['id']}")
 
-def main(script_json_path):
+def render_episode(script_json_path):
     with open(script_json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -234,6 +125,9 @@ def main(script_json_path):
     if not yt_token:
         raise ValueError(f"Missing YouTube Refresh Token secret for channel: {handle}")
 
+    default_theme, default_accent = DEFAULT_THEMES.get(handle, ("glass_neon", "#38BDF8"))
+    theme = data.get("theme", default_theme)
+    accent_color = data.get("accent_color", default_accent)
     voice = data.get("voice_id", "en-US-AvaMultilingualNeural")
     aspect = data.get("aspect_ratio", "16:9")
     width, height = (1080, 1920) if aspect == "9:16" else (1920, 1080)
@@ -244,45 +138,30 @@ def main(script_json_path):
     os.makedirs(public_assets_dir, exist_ok=True)
 
     remotion_scenes = []
-    used_urls = set()
     cursor_sec = 0.0
 
     for idx, scene in enumerate(data["scenes"]):
-        print(f"[{handle}] Preparing Scene {idx+1}/{len(data['scenes'])}")
+        print(f"[{handle}] Building Motion Scene {idx+1}/{len(data['scenes'])}")
         audio_name = f"audio_{idx}.mp3"
         audio_disk_path = os.path.join(public_assets_dir, audio_name)
         words = asyncio.run(generate_tts_with_words(scene["narration"], audio_disk_path, voice))
-        dur = get_duration(audio_disk_path) + 0.45
+        dur = get_duration(audio_disk_path) + 0.40
 
-        media_type = "grid"
-        media_rel = None
-
-        if scene.get("chart"):
-            media_type = "chart"
-        else:
-            q = scene.get("visual_query", "earth night lights")
-            vid_name = f"clip_{idx}.mp4"
-            vid_disk_path = os.path.join(public_assets_dir, vid_name)
-            img_name = f"img_{idx}.jpg"
-            img_disk_path = os.path.join(public_assets_dir, img_name)
-
-            if fetch_wikimedia_hd_video(q, vid_disk_path, used_urls) or fetch_nasa_hd_video(q, vid_disk_path, used_urls):
-                media_type = "video"
-                media_rel = f"assets/{vid_name}"
-            elif fetch_wikimedia_hd_photo(q, img_disk_path, used_urls):
-                media_type = "image"
-                media_rel = f"assets/{img_name}"
+        chart_obj = scene.get("chart") or {
+            "type": "kpi",
+            "title": scene.get("callout_text", data["title_options"][0]),
+            "labels": ["Key Insight"],
+            "values": [100],
+            "unit": "%",
+        }
 
         remotion_scenes.append({
             "sceneNumber": idx + 1,
             "startSec": round(cursor_sec, 3),
             "durationSec": round(dur, 3),
             "calloutText": scene.get("callout_text", ""),
-            "highlightStat": scene.get("highlight_stat", ""),
-            "mediaType": media_type,
-            "mediaFile": media_rel,
             "audioFile": f"assets/{audio_name}",
-            "chart": scene.get("chart"),
+            "chart": chart_obj,
             "words": words,
         })
         cursor_sec += dur
@@ -290,6 +169,8 @@ def main(script_json_path):
     props_payload = {
         "channelHandle": handle,
         "episodeTitle": data["title_options"][0],
+        "theme": theme,
+        "accentColor": accent_color,
         "width": width,
         "height": height,
         "totalDurationSec": round(cursor_sec, 3),
@@ -301,10 +182,10 @@ def main(script_json_path):
         json.dump(props_payload, f)
 
     raw_remotion_mp4 = "/tmp/remotion_raw.mp4"
-    print(f"[{handle}] Rendering Remotion 1080p Studio Composition...")
+    print(f"[{handle}] Rendering High-Bitrate 1080p Remotion Studio Video...")
     subprocess.run([
         "npx", "remotion", "render", "remotion/index.ts", "DocumentaryVideo",
-        raw_remotion_mp4, f"--props={props_file}", "--concurrency=2"
+        raw_remotion_mp4, f"--props={props_file}", "--crf=18", "--concurrency=2"
     ], check=True)
 
     total_dur = get_duration(raw_remotion_mp4)
@@ -328,5 +209,25 @@ def main(script_json_path):
     upload_to_drive(drive, sub_id, script_json_path, "application/json")
     upload_to_youtube(youtube, final_mp4, data)
 
+def run_auto_next_queue():
+    drive = build_service("drive", "v3", DRIVE_REFRESH_TOKEN)
+    for channel_dir in sorted(glob.glob("scripts/*/")):
+        scripts = sorted(glob.glob(os.path.join(channel_dir, "ep*.json")))
+        for s_path in scripts:
+            with open(s_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            sub_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, meta["drive_folder"])
+            expected_mp4 = f"{meta['drive_folder']}_{meta['episode_id']}.mp4"
+            if not file_exists_in_drive(drive, sub_id, expected_mp4):
+                print(f"Queue Auto-Pick: Rendering {s_path} (not yet in Google Drive)")
+                render_episode(s_path)
+                break
+        else:
+            print(f"All queued scripts in {channel_dir} are already rendered!")
+
 if __name__ == "__main__":
-    main(sys.argv[1])
+    arg = sys.argv[1]
+    if arg == "AUTO_NEXT":
+        run_auto_next_queue()
+    else:
+        render_episode(arg)
