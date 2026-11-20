@@ -1,0 +1,48 @@
+{
+  "channel_handle": "@MarketAnatomyTVA",
+  "niche": "business",
+  "drive_folder": "03_MarketAnatomyTVA",
+  "episode_id": "ep03",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-EmmaMultilingualNeural",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "Visualizes how standardized shipping containers collapsed freight costs by 97% and unlocked global supply chains.",
+  "title_options": [
+    "How One Steel Box Cut Global Shipping Costs by 97 Percent",
+    "The Container Revolution That Built Modern Trade",
+    "Why Standardized Cargo Boxes Changed World Economics"
+  ],
+  "thumbnail_prompt": "Massive container ship entering a glowing port at twilight with bold 97% DROP chart overlay",
+  "thumbnail_text": "97% COST DROP",
+  "seo_description": "Before 1956, loading a cargo ship took weeks of manual dock labor. Discover how standardized steel shipping containers cut loading costs from $5.86 per ton to $0.16 per ton.\n\n00:00 The Port Bottleneck\n00:35 The 97% Freight Cost Collapse\n01:10 Global Intermodal Scale\n\n#SupplyChain #GlobalEconomics #MarketAnatomy #BusinessHistory #ContainerShipping",
+  "tags": ["shipping container history", "global supply chain", "economics case study", "market anatomy"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "callout_text": "01 // THE PORT BOTTLENECK",
+      "visual_query": "cargo ship",
+      "narration": "Before nineteen fifty-six, loading a single merchant vessel required hundreds of dockworkers hauling loose sacks and wooden crates one by one. Ships spent half their lives sitting idle in port, making international trade slow and prohibitively expensive."
+    },
+    {
+      "scene_number": 2,
+      "callout_text": "02 // FREIGHT COST PER TON ($ USD)",
+      "chart": {
+        "type": "bar",
+        "title": "Port Loading Cost Per Ton (1956 vs Containerized)",
+        "labels": ["Manual Dock Labor", "Standard Container"],
+        "values": [5.86, 0.16],
+        "unit": "$",
+        "color": "#38BDF8"
+      },
+      "narration": "When trucking entrepreneur Malcom McLean introduced standardized steel containers that cranes could lift directly from trucks onto ships, port loading costs plunged from five dollars and eighty-six cents per ton down to just sixteen cents—a ninety-seven percent collapse."
+    },
+    {
+      "scene_number": 3,
+      "callout_text": "03 // GLOBAL INTERMODAL NETWORK",
+      "visual_query": "container port",
+      "narration": "Within two decades, global ports rebuilt around automated gantry cranes and intermodal rail links. That single logistics breakthrough turned isolated regional factories into today's interconnected global supply chain."
+    }
+  ]
+}
