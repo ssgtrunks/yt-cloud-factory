@@ -1,0 +1,60 @@
+name: Cloud Video Render and Stage
+
+on:
+  push:
+    paths:
+      - 'scripts/**/*.json'
+  workflow_dispatch:
+    inputs:
+      script_path:
+        description: 'Path to script JSON (or type ALL to render all ep01 scripts)'
+        required: true
+        default: 'ALL'
+
+jobs:
+  build-video:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install edge-tts requests google-api-python-client google-auth
+
+      - name: Render, Backup to 5TB Drive, and Stage to YouTube
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DRIVE_ROOT_FOLDER_ID: ${{ secrets.DRIVE_ROOT_FOLDER_ID }}
+          DRIVE_REFRESH_TOKEN: ${{ secrets.DRIVE_REFRESH_TOKEN }}
+          YT_TOKEN_CAPLEDGER: ${{ secrets.YT_TOKEN_CAPLEDGER }}
+          YT_TOKEN_WORKFLOWSTACK: ${{ secrets.YT_TOKEN_WORKFLOWSTACK }}
+          YT_TOKEN_MARKETANATOMY: ${{ secrets.YT_TOKEN_MARKETANATOMY }}
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.script_path }}" == "ALL" ]; then
+              for file in scripts/**/ep01.json; do
+                [ -f "$file" ] && python cloud_builder.py "$file"
+              done
+            else
+              python cloud_builder.py "${{ github.event.inputs.script_path }}"
+            fi
+          else
+            CHANGED_JSON=$(git diff --name-only HEAD~1 HEAD -- 'scripts/**/*.json')
+            for file in $CHANGED_JSON; do
+              if [ -f "$file" ]; then
+                echo "Processing $file"
+                python cloud_builder.py "$file"
+              fi
+            done
+          fi
