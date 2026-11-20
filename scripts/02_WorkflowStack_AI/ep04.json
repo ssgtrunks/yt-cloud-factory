@@ -15,73 +15,89 @@
     "Zero-Hardware Video Automation: Inside a Headless GitHub Factory",
     "Why Modern Creators Replace Local Rendering With Event-Driven Workflows"
   ],
-  "seo_description": "A technical walkthrough of event-driven cloud automation using Git commits, ephemeral Linux containers, and programmatic motion graphics.\n\n00:00 The Local Compute Bottleneck\n00:25 Event-Driven Cloud Architecture\n00:50 Performance & Cost Comparison\n\n#CloudAutomation #GitHubActions #Remotion #WorkflowStack #AIWorkflows",
+  "seo_description": "A technical walkthrough of event-driven cloud automation using Git commits, ephemeral Linux containers, and programmatic motion graphics.\n\n00:00 The Local Compute Bottleneck\n00:12 Git-Triggered Cloud Runner\n00:24 4-Stage Production Loop\n00:36 Cloud Vault & Private Staging\n00:46 Real Hardware & Cost Footprint\n\n#CloudAutomation #GitHubActions #Remotion #WorkflowStack #AIWorkflows",
   "tags": ["github actions automation", "remotion video", "cloud workflows", "workflow stack"],
   "scenes": [
     {
       "scene_number": 1,
-      "callout_text": "01 // LOCAL RENDERING VS CLOUD FACTORY",
+      "callout_text": "01 // LOCAL BOTTLENECK VS CLOUD",
       "chart": {
         "type": "versus",
-        "title": "Why Local Video Pipelines Bottleneck",
-        "left_title": "Traditional Laptop Rendering",
+        "title": "Why Local Video Rendering Fails at Scale",
+        "left_title": "Personal Laptop",
         "left_points": [
-          "Requires PC powered on for hours",
-          "Consumes hundreds of gigabytes of local SSD",
-          "Manual file transfers and uploads"
+          "CPU locked at 100% during exports",
+          "Hundreds of GBs of local SSD used",
+          "Manual uploads to Drive and YouTube"
         ],
-        "right_title": "Headless GitHub Cloud Factory",
+        "right_title": "Headless Cloud Runner",
         "right_points": [
-          "100% cloud execution while laptop is shut down",
-          "Direct streaming to 5 TB Google Drive vault",
-          "Automatic YouTube Studio private staging"
+          "Runs while your laptop is completely off",
+          "Zero local disk space consumed",
+          "Automated Drive backup and YouTube staging"
         ]
       },
-      "narration": "Rendering high-definition motion graphics on a personal laptop ties up your processor, drains battery, and fills hundreds of gigabytes of local storage. Event-driven cloud pipelines eliminate local hardware completely."
+      "narration": "Rendering video on a personal laptop locks up your processor, fills local storage, and forces manual uploads. A headless cloud runner solves all three."
     },
     {
       "scene_number": 2,
-      "callout_text": "02 // HEADLESS BUILD EXECUTION",
+      "callout_text": "02 // GIT WEBHOOK TRIGGER",
       "chart": {
         "type": "terminal",
-        "title": "ubuntu-latest — github-actions-runner",
+        "title": "github-actions — ubuntu-latest",
         "commands": [
           "$ git push origin main scripts/ep04.json",
-          "> Provisioning ephemeral Ubuntu container...",
-          "> Synthesizing neural voiceover + word timings...",
-          "> Rendering 1080p Remotion React composition...",
-          "✓ SUCCESS: Backed up to 5TB Drive & YouTube Studio"
+          "> Webhook detected JSON commit on main",
+          "> Booting ephemeral Linux container",
+          "✓ Pipeline started with zero local compute"
         ]
       },
-      "narration": "The moment a structured JSON script is pushed to GitHub, an ephemeral Linux runner spins up in the cloud, generates neural speech, renders crisp motion graphics frame by frame, and stages the finished video automatically."
+      "narration": "The moment a JSON script hits GitHub, a webhook spins up an ephemeral Linux container in the cloud with zero local compute."
     },
     {
       "scene_number": 3,
-      "callout_text": "03 // 4-STAGE AUTONOMOUS PIPELINE",
+      "callout_text": "03 // 4-STAGE AUTONOMOUS LOOP",
       "chart": {
         "type": "timeline",
-        "title": "End-to-End Zero-Touch Production Loop",
+        "title": "How Each Episode Builds Automatically",
         "steps": [
-          { "step": "STAGE 01", "title": "JSON Script Commit", "detail": "Structured scenes & chart data pushed via API" },
-          { "step": "STAGE 02", "title": "Neural TTS + Timings", "detail": "Word-level timestamps synchronized to audio" },
-          { "step": "STAGE 03", "title": "1080p Motion Render", "detail": "Headless Chromium renders 30fps spring UI" },
-          { "step": "STAGE 04", "title": "Cloud Vault & Stage", "detail": "Auto-uploaded to 5TB Drive & YouTube Drafts" }
+          { "step": "STEP 01", "title": "Parse JSON", "detail": "Reads scenes, voice ID, and layout rules" },
+          { "step": "STEP 02", "title": "Neural TTS", "detail": "Generates speech and word timestamps" },
+          { "step": "STEP 03", "title": "1080p Render", "detail": "Headless Chromium renders 30fps UI" },
+          { "step": "STEP 04", "title": "API Upload", "detail": "Streams MP4 to Drive and YouTube" }
         ]
       },
-      "narration": "Every stage runs deterministically in the cloud on a weekly schedule, turning raw JSON scripts into publish-ready videos with zero human intervention."
+      "narration": "First it parses the JSON script, next it synthesizes neural voice timings, then Chromium renders 1080p frames, and finally APIs upload the finished video."
     },
     {
       "scene_number": 4,
-      "callout_text": "04 // EFFICIENCY BENCHMARK",
+      "callout_text": "04 // PARALLEL CLOUD DISTRIBUTION",
       "chart": {
-        "type": "beam_chart",
-        "title": "Pipeline Automation Efficiency Score",
-        "subtitle": "Comparison of manual editing vs programmatic cloud rendering",
-        "labels": ["Cloud Factory", "Hybrid Template", "Manual Editing"],
-        "values": [98, 72, 34],
-        "unit": "%"
+        "type": "mindmap",
+        "title": "Single Render Output -> Dual Cloud Destinations",
+        "center_node": "1080p Master MP4",
+        "branch_nodes": [
+          "5 TB Google Drive Archive",
+          "JSON Audit Trail Backup",
+          "YouTube Studio Private Draft",
+          "Auto-Filled SEO Tags & Metadata"
+        ]
       },
-      "narration": "By separating creative script generation from deterministic cloud rendering, a single operator can run multiple niche channels simultaneously at near-zero marginal cost."
+      "narration": "Every finished master file is archived inside a five-terabyte Google Drive vault alongside its JSON script and staged privately in YouTube Studio."
+    },
+    {
+      "scene_number": 5,
+      "callout_text": "05 // VERIFIED RESOURCE FOOTPRINT",
+      "chart": {
+        "type": "kpi",
+        "title": "Actual Hardware & Cloud Footprint Per Run",
+        "subtitle": "Measured across automated weekly GitHub Actions executions",
+        "labels": ["Local Storage Used", "Local Power Draw", "Cloud Runner Cost"],
+        "values": [0, 0, 0],
+        "prefixes": ["", "", "$"],
+        "units": [" GB", " Watts", ".00"]
+      },
+      "narration": "The result is a repeatable weekly publishing engine using zero gigabytes of local storage, zero local power, and zero dollars in extra server fees."
     }
   ]
 }
