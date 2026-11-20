@@ -2,11 +2,15 @@ import React from "react";
 import { Composition } from "remotion";
 import { DocumentaryVideo, DocumentaryProps } from "./DocumentaryVideo";
 
+// Remotion types composition props as Record<string, unknown>; the cast keeps
+// DocumentaryProps strongly typed inside the component.
+const DocumentaryComponent = DocumentaryVideo as unknown as React.FC<Record<string, unknown>>;
+
 export const RemotionRoot: React.FC = () => {
   return (
     <Composition
       id="DocumentaryVideo"
-      component={DocumentaryVideo}
+      component={DocumentaryComponent}
       durationInFrames={300}
       fps={30}
       width={1920}
@@ -19,14 +23,15 @@ export const RemotionRoot: React.FC = () => {
         totalDurationSec: 10,
         scenes: [],
       }}
-      calculateMetadata={({ props }: { props: DocumentaryProps }) => {
+      calculateMetadata={({ props }) => {
+        const p = props as unknown as DocumentaryProps;
         const fps = 30;
-        const durationInFrames = Math.max(90, Math.ceil((props.totalDurationSec || 10) * fps));
+        const durationInFrames = Math.max(90, Math.ceil((p.totalDurationSec || 10) * fps));
         return {
           durationInFrames,
           fps,
-          width: props.width || 1920,
-          height: props.height || 1080,
+          width: p.width || 1920,
+          height: p.height || 1080,
         };
       }}
     />
