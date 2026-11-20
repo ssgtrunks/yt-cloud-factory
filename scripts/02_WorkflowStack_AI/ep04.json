@@ -1,0 +1,87 @@
+{
+  "channel_handle": "@WorkflowStack-AI",
+  "niche": "ai",
+  "drive_folder": "02_WorkflowStack_AI",
+  "episode_id": "ep04",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-BrianNeural",
+  "theme": "cyber_dark",
+  "accent_color": "#10B981",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "title_options": [
+    "How Autonomous Cloud Pipelines Render Videos While Your PC Is Off",
+    "Zero-Hardware Video Automation: Inside a Headless GitHub Factory",
+    "Why Modern Creators Replace Local Rendering With Event-Driven Workflows"
+  ],
+  "seo_description": "A technical walkthrough of event-driven cloud automation using Git commits, ephemeral Linux containers, and programmatic motion graphics.\n\n00:00 The Local Compute Bottleneck\n00:25 Event-Driven Cloud Architecture\n00:50 Performance & Cost Comparison\n\n#CloudAutomation #GitHubActions #Remotion #WorkflowStack #AIWorkflows",
+  "tags": ["github actions automation", "remotion video", "cloud workflows", "workflow stack"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "callout_text": "01 // LOCAL RENDERING VS CLOUD FACTORY",
+      "chart": {
+        "type": "versus",
+        "title": "Why Local Video Pipelines Bottleneck",
+        "left_title": "Traditional Laptop Rendering",
+        "left_points": [
+          "Requires PC powered on for hours",
+          "Consumes hundreds of gigabytes of local SSD",
+          "Manual file transfers and uploads"
+        ],
+        "right_title": "Headless GitHub Cloud Factory",
+        "right_points": [
+          "100% cloud execution while laptop is shut down",
+          "Direct streaming to 5 TB Google Drive vault",
+          "Automatic YouTube Studio private staging"
+        ]
+      },
+      "narration": "Rendering high-definition motion graphics on a personal laptop ties up your processor, drains battery, and fills hundreds of gigabytes of local storage. Event-driven cloud pipelines eliminate local hardware completely."
+    },
+    {
+      "scene_number": 2,
+      "callout_text": "02 // HEADLESS BUILD EXECUTION",
+      "chart": {
+        "type": "terminal",
+        "title": "ubuntu-latest — github-actions-runner",
+        "commands": [
+          "$ git push origin main scripts/ep04.json",
+          "> Provisioning ephemeral Ubuntu container...",
+          "> Synthesizing neural voiceover + word timings...",
+          "> Rendering 1080p Remotion React composition...",
+          "✓ SUCCESS: Backed up to 5TB Drive & YouTube Studio"
+        ]
+      },
+      "narration": "The moment a structured JSON script is pushed to GitHub, an ephemeral Linux runner spins up in the cloud, generates neural speech, renders crisp motion graphics frame by frame, and stages the finished video automatically."
+    },
+    {
+      "scene_number": 3,
+      "callout_text": "03 // 4-STAGE AUTONOMOUS PIPELINE",
+      "chart": {
+        "type": "timeline",
+        "title": "End-to-End Zero-Touch Production Loop",
+        "steps": [
+          { "step": "STAGE 01", "title": "JSON Script Commit", "detail": "Structured scenes & chart data pushed via API" },
+          { "step": "STAGE 02", "title": "Neural TTS + Timings", "detail": "Word-level timestamps synchronized to audio" },
+          { "step": "STAGE 03", "title": "1080p Motion Render", "detail": "Headless Chromium renders 30fps spring UI" },
+          { "step": "STAGE 04", "title": "Cloud Vault & Stage", "detail": "Auto-uploaded to 5TB Drive & YouTube Drafts" }
+        ]
+      },
+      "narration": "Every stage runs deterministically in the cloud on a weekly schedule, turning raw JSON scripts into publish-ready videos with zero human intervention."
+    },
+    {
+      "scene_number": 4,
+      "callout_text": "04 // EFFICIENCY BENCHMARK",
+      "chart": {
+        "type": "beam_chart",
+        "title": "Pipeline Automation Efficiency Score",
+        "subtitle": "Comparison of manual editing vs programmatic cloud rendering",
+        "labels": ["Cloud Factory", "Hybrid Template", "Manual Editing"],
+        "values": [98, 72, 34],
+        "unit": "%"
+      },
+      "narration": "By separating creative script generation from deterministic cloud rendering, a single operator can run multiple niche channels simultaneously at near-zero marginal cost."
+    }
+  ]
+}
