@@ -93,7 +93,7 @@ const getTheme = (themeName: string | undefined, customAccent?: string): ThemeTo
       textPrimary: "#0F172A",
       textSecondary: "#475569",
       accent: customAccent || "#059669",
-      gridLine: "rgba(15, 23, 42, 0.045)",
+      gridLine: "rgba(15, 23, 42, 0.05)",
     };
   }
   if (themeName === "cyber_dark") {
@@ -101,7 +101,7 @@ const getTheme = (themeName: string | undefined, customAccent?: string): ThemeTo
       isLight: false,
       bgGradient: "radial-gradient(circle at 50% 15%, #062825 0%, #050A0E 65%, #020406 100%)",
       cardBg: "rgba(10, 20, 28, 0.94)",
-      cardBorder: "rgba(16, 185, 129, 0.32)",
+      cardBorder: "rgba(16, 185, 129, 0.35)",
       textPrimary: "#F8FAFC",
       textSecondary: "#94A3B8",
       accent: customAccent || "#10B981",
@@ -111,12 +111,12 @@ const getTheme = (themeName: string | undefined, customAccent?: string): ThemeTo
   return {
     isLight: false,
     bgGradient: "radial-gradient(circle at 25% 15%, #1E293B 0%, #090D16 60%, #04060B 100%)",
-    cardBg: "rgba(15, 23, 42, 0.88)",
-    cardBorder: "rgba(56, 189, 248, 0.30)",
+    cardBg: "rgba(15, 23, 42, 0.90)",
+    cardBorder: "rgba(56, 189, 248, 0.32)",
     textPrimary: "#F8FAFC",
     textSecondary: "#94A3B8",
     accent: customAccent || "#38BDF8",
-    gridLine: "rgba(255, 255, 255, 0.045)",
+    gridLine: "rgba(255, 255, 255, 0.05)",
   };
 };
 
@@ -126,16 +126,17 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
   const chart = scene.chart;
   const accent = chart.color || theme.accent;
 
-  // Normalized progress across 88% of scene so animations pace with the narrator's voice
-  const activeSpan = Math.max(30, Math.floor(durationInFrames * 0.88));
-  const sceneProgress = Math.min(1, frame / activeSpan);
-  const entrance = spring({ frame, fps, config: { damping: 15, stiffness: 95 } });
-  const subtleFloat = Math.sin(frame / 14) * 5;
+  // Continuous slow push-in + subtle floating motion across the ENTIRE scene
+  const cameraDrift = interpolate(frame, [0, durationInFrames], [0.98, 1.035], {
+    extrapolateRight: "clamp",
+  });
+  const floatY = Math.sin(frame / 14) * 5;
+  const sceneProgress = Math.min(1, frame / Math.max(1, durationInFrames * 0.78));
 
-  // 1. GLOWING VERTICAL BEAM CHART (Staggered across scene duration)
+  // 1. GLOWING VERTICAL BEAM CHART
   if (chart.type === "beam_chart") {
-    const values = chart.values || [100, 50];
-    const labels = chart.labels || ["Option A", "Option B"];
+    const values = chart.values || [97, 91, 89];
+    const labels = chart.labels || ["A", "B", "C"];
     const maxVal = Math.max(...values, 1);
 
     return (
@@ -146,12 +147,12 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
           backgroundColor: theme.cardBg,
           border: `1px solid ${theme.cardBorder}`,
           borderRadius: 30,
-          padding: "42px 64px",
+          padding: "44px 64px",
           boxShadow: "0 28px 75px rgba(0,0,0,0.32)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transform: `translateY(${subtleFloat}px) scale(${interpolate(entrance, [0, 1], [0.96, 1])})`,
+          transform: `scale(${cameraDrift}) translateY(${floatY}px)`,
         }}
       >
         <div>
@@ -166,20 +167,20 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "space-around",
-            height: "64%",
+            height: "65%",
             borderBottom: `2px solid ${theme.cardBorder}`,
             gap: 56,
           }}
         >
           {values.map((val, idx) => {
-            const barStart = Math.floor((idx / Math.max(1, values.length)) * (activeSpan * 0.65));
+            const staggerStart = (idx / values.length) * (durationInFrames * 0.45);
             const grow = spring({
-              frame: Math.max(0, frame - barStart),
+              frame: Math.max(0, frame - staggerStart),
               fps,
-              config: { damping: 14, stiffness: 75 },
+              config: { damping: 16, stiffness: 55 },
             });
             const pct = (val / maxVal) * 84 * grow;
-            const isHero = idx === values.length - 1 || idx === 0;
+            const isHero = idx === 0;
             const animatedVal = (val * grow).toFixed(val % 1 === 0 ? 0 : 2);
             const pfx = chart.prefixes ? chart.prefixes[idx] || "" : chart.prefix || "";
             const sfx = chart.units ? chart.units[idx] || "" : chart.unit || "";
@@ -194,12 +195,11 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "flex-end",
-                  opacity: frame >= barStart ? 1 : 0.25,
                 }}
               >
                 <div
                   style={{
-                    fontSize: 40,
+                    fontSize: 42,
                     fontWeight: 900,
                     color: isHero ? accent : theme.textPrimary,
                     marginBottom: 14,
@@ -215,8 +215,6 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                     height: `${Math.max(5, pct)}%`,
                     background: isHero
                       ? `linear-gradient(180deg, ${accent} 0%, ${accent}33 100%)`
-                      : theme.isLight
-                      ? "linear-gradient(180deg, #94A3B8 0%, #CBD5E1 100%)"
                       : "linear-gradient(180deg, #475569 0%, #1E293B 100%)",
                     borderTop: `4px solid ${isHero ? "#FFFFFF" : accent}`,
                     borderRadius: "16px 16px 0 0",
@@ -242,10 +240,10 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
     );
   }
 
-  // 2. VOICE-PACED LIVE TERMINAL TYPING CARD (Lines type evenly across full scene)
+  // 2. VOICE-PACED LIVE TERMINAL
   if (chart.type === "terminal") {
-    const cmds = chart.commands || ["$ initializing workflow...", "✓ 100% automated execution"];
-    const stepFrames = Math.max(12, Math.floor(activeSpan / Math.max(1, cmds.length)));
+    const cmds = chart.commands || ["$ initializing...", "✓ complete"];
+    const framesPerLine = Math.max(12, Math.floor((durationInFrames * 0.78) / cmds.length));
 
     return (
       <div
@@ -259,7 +257,7 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
           boxShadow: "0 30px 80px rgba(0,0,0,0.65)",
           display: "flex",
           flexDirection: "column",
-          transform: `translateY(${subtleFloat * 0.7}px) scale(${interpolate(entrance, [0, 1], [0.96, 1])})`,
+          transform: `scale(${cameraDrift}) translateY(${floatY}px)`,
         }}
       >
         <div
@@ -278,43 +276,32 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
             <div style={{ width: 15, height: 15, borderRadius: 99, backgroundColor: "#10B981" }} />
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#9CA3AF" }}>{chart.title}</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: accent }}>LIVE</div>
+          <div style={{ width: 60 }} />
         </div>
 
-        <div style={{ padding: "40px 54px", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ padding: "44px 54px", display: "flex", flexDirection: "column", gap: 26 }}>
           {cmds.map((line, idx) => {
-            const lineStart = idx * stepFrames;
-            const localFrame = frame - lineStart;
-            if (localFrame < 0) return null;
-
-            const charsPerFrame = Math.max(1.2, line.length / Math.max(8, stepFrames * 0.75));
-            const visibleChars = Math.min(line.length, Math.floor(localFrame * charsPerFrame));
-            const shownText = line.slice(0, visibleChars);
-            const isSuccess = line.trim().startsWith("✓") || line.includes("SUCCESS");
-            const isCurrentLine = idx === Math.min(cmds.length - 1, Math.floor(frame / stepFrames));
+            const lineStart = idx * framesPerLine;
+            if (frame < lineStart) return null;
+            const localProgress = Math.min(1, (frame - lineStart) / Math.max(8, framesPerLine * 0.85));
+            const shownText = line.slice(0, Math.ceil(line.length * localProgress));
+            const isSuccess = line.trim().startsWith("✓") || line.includes("DONE");
 
             return (
               <div
                 key={idx}
                 style={{
                   fontFamily: "monospace",
-                  fontSize: 30,
+                  fontSize: 31,
                   fontWeight: 700,
                   color: isSuccess ? "#10B981" : idx === 0 ? accent : "#F3F4F6",
-                  backgroundColor: isSuccess
-                    ? "rgba(16, 185, 129, 0.14)"
-                    : isCurrentLine
-                    ? "rgba(255, 255, 255, 0.04)"
-                    : "transparent",
-                  padding: "12px 20px",
+                  backgroundColor: isSuccess ? "rgba(16, 185, 129, 0.12)" : "transparent",
+                  padding: isSuccess ? "14px 22px" : "4px 0",
                   borderRadius: 12,
-                  borderLeft: isCurrentLine ? `4px solid ${accent}` : "4px solid transparent",
                 }}
               >
                 {shownText}
-                {isCurrentLine && Math.floor(frame / 8) % 2 === 0 && (
-                  <span style={{ color: accent, marginLeft: 4 }}>▌</span>
-                )}
+                {localProgress < 1 && <span style={{ color: accent }}>▌</span>}
               </div>
             );
           })}
@@ -323,9 +310,10 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
     );
   }
 
-  // 3. ANIMATED SVG MIND MAP / HUB & SPOKE (Branches draw sequentially across scene)
+  // 3. VOICE-PACED SVG MIND MAP
   if (chart.type === "mindmap") {
-    const branches = chart.branch_nodes || ["Factor 1", "Factor 2", "Factor 3", "Factor 4"];
+    const branches = chart.branch_nodes || ["Node 1", "Node 2", "Node 3", "Node 4"];
+    const stepWindow = (durationInFrames * 0.72) / branches.length;
 
     return (
       <div
@@ -339,7 +327,7 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          boxShadow: "0 25px 70px rgba(0,0,0,0.22)",
+          transform: `scale(${cameraDrift})`,
         }}
       >
         <div style={{ fontSize: 36, fontWeight: 900, color: theme.textPrimary, textAlign: "center" }}>
@@ -349,8 +337,8 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
         <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="1480" height="440" style={{ position: "absolute" }}>
             {branches.map((_, idx) => {
-              const branchStart = Math.floor((idx / Math.max(1, branches.length)) * (activeSpan * 0.75));
-              const drawPct = interpolate(frame, [branchStart, branchStart + 18], [0, 1], {
+              const startF = idx * stepWindow;
+              const lineDraw = interpolate(frame, [startF, startF + stepWindow], [0, 1], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
               });
@@ -366,7 +354,7 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                   stroke={accent}
                   strokeWidth="4"
                   strokeDasharray="600"
-                  strokeDashoffset={600 * (1 - drawPct)}
+                  strokeDashoffset={600 * (1 - lineDraw)}
                   opacity={0.85}
                 />
               );
@@ -383,21 +371,19 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
               fontSize: 32,
               fontWeight: 900,
               boxShadow: `0 18px 45px ${accent}55`,
-              transform: `scale(${entrance + Math.sin(frame / 12) * 0.02})`,
+              transform: `translateY(${floatY}px)`,
             }}
           >
-            {chart.center_node || "Core System"}
+            {chart.center_node || "Core"}
           </div>
 
           {branches.map((node, idx) => {
-            const branchStart = Math.floor((idx / Math.max(1, branches.length)) * (activeSpan * 0.75)) + 6;
-            const pop = spring({
-              frame: Math.max(0, frame - branchStart),
-              fps,
-              config: { damping: 13, stiffness: 95 },
-            });
+            const startF = idx * stepWindow;
+            const pop = spring({ frame: Math.max(0, frame - startF), fps, config: { damping: 14, stiffness: 80 } });
             const isLeft = idx % 2 === 0;
             const row = Math.floor(idx / 2);
+            const isSpotlight = Math.floor(frame / stepWindow) === idx;
+
             return (
               <div
                 key={idx}
@@ -408,15 +394,15 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                   top: row === 0 ? 55 : 285,
                   width: 390,
                   backgroundColor: theme.isLight ? "#FFFFFF" : "#0F172A",
-                  border: `2px solid ${accent}88`,
+                  border: isSpotlight ? `3px solid ${accent}` : `1px solid ${accent}55`,
                   borderRadius: 18,
                   padding: "22px 26px",
                   fontSize: 23,
                   fontWeight: 800,
                   color: theme.textPrimary,
                   textAlign: "center",
-                  boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
-                  transform: `scale(${pop})`,
+                  boxShadow: isSpotlight ? `0 14px 36px ${accent}44` : "0 10px 24px rgba(0,0,0,0.2)",
+                  transform: `scale(${pop * (isSpotlight ? 1.05 : 1)})`,
                   opacity: pop,
                 }}
               >
@@ -429,35 +415,44 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
     );
   }
 
-  // 4. BENTO GRID MATRIX (Cards pop in sequentially across scene duration)
+  // 4. BENTO GRID WITH SEQUENTIAL SPOTLIGHT
   if (chart.type === "bento_grid") {
     const items = chart.bento_items || [];
+    const stepWindow = (durationInFrames * 0.72) / Math.max(1, items.length);
+
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          transform: `scale(${cameraDrift})`,
+        }}
+      >
         <div style={{ fontSize: 38, fontWeight: 900, color: theme.textPrimary, marginBottom: 32, textAlign: "center" }}>
           {chart.title}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 28, width: "100%" }}>
           {items.map((item, idx) => {
-            const itemStart = Math.floor((idx / Math.max(1, items.length)) * (activeSpan * 0.72));
-            const pop = spring({
-              frame: Math.max(0, frame - itemStart),
-              fps,
-              config: { damping: 13, stiffness: 95 },
-            });
+            const startF = idx * stepWindow;
+            const pop = spring({ frame: Math.max(0, frame - startF), fps, config: { damping: 14, stiffness: 80 } });
+            const isSpotlight = Math.floor(frame / stepWindow) === idx;
+
             return (
               <div
                 key={idx}
                 style={{
                   backgroundColor: theme.cardBg,
-                  border: item.highlight ? `2px solid ${accent}` : `1px solid ${theme.cardBorder}`,
+                  border: isSpotlight ? `3px solid ${accent}` : `1px solid ${theme.cardBorder}`,
                   borderRadius: 24,
                   padding: "30px 36px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  boxShadow: item.highlight ? `0 18px 45px ${accent}33` : "0 12px 30px rgba(0,0,0,0.18)",
-                  transform: `translateY(${interpolate(pop, [0, 1], [35, 0])}px) scale(${pop})`,
+                  boxShadow: isSpotlight ? `0 20px 50px ${accent}44` : "0 12px 30px rgba(0,0,0,0.18)",
+                  transform: `scale(${pop * (isSpotlight ? 1.03 : 1)})`,
                   opacity: pop,
                 }}
               >
@@ -465,8 +460,8 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                   <div
                     style={{
                       display: "inline-block",
-                      backgroundColor: item.highlight ? `${accent}22` : "rgba(148,163,184,0.15)",
-                      color: item.highlight ? accent : theme.textSecondary,
+                      backgroundColor: isSpotlight ? `${accent}25` : "rgba(148,163,184,0.15)",
+                      color: isSpotlight ? accent : theme.textSecondary,
                       fontSize: 18,
                       fontWeight: 800,
                       padding: "6px 14px",
@@ -478,7 +473,7 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: theme.textPrimary }}>{item.title}</div>
                 </div>
-                <div style={{ fontSize: 42, fontWeight: 900, color: item.highlight ? accent : theme.textPrimary }}>
+                <div style={{ fontSize: 42, fontWeight: 900, color: isSpotlight ? accent : theme.textPrimary }}>
                   {item.metric}
                 </div>
               </div>
@@ -489,76 +484,69 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
     );
   }
 
-  // 5. SPOTLIGHT PIPELINE FLOW (Spotlights ONLY the currently active stage across the scene)
+  // 5. TIMELINE WITH ACTIVE STEP SPOTLIGHT (Only current step glows & enlarges)
   if (chart.type === "timeline") {
     const steps = chart.steps || [];
-    const activeIdx = Math.min(steps.length - 1, Math.floor(sceneProgress * steps.length));
+    const stepWindow = durationInFrames / Math.max(1, steps.length);
+    const activeStep = Math.min(steps.length - 1, Math.floor(frame / stepWindow));
 
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontSize: 38, fontWeight: 900, color: theme.textPrimary, marginBottom: 40, textAlign: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          transform: `scale(${cameraDrift})`,
+        }}
+      >
+        <div style={{ fontSize: 38, fontWeight: 900, color: theme.textPrimary, marginBottom: 36, textAlign: "center" }}>
           {chart.title}
         </div>
-        <div style={{ display: "flex", alignItems: "stretch", gap: 22, width: "100%" }}>
+        <div style={{ display: "flex", gap: 28, width: "100%" }}>
           {steps.map((st, idx) => {
-            const isCurrent = idx === activeIdx;
-            const isPast = idx < activeIdx;
-            const stageScale = isCurrent ? 1.04 : 0.97;
+            const isCurrent = idx === activeStep;
+            const isPast = idx < activeStep;
+            const pop = spring({
+              frame: Math.max(0, frame - idx * (stepWindow * 0.65)),
+              fps,
+              config: { damping: 14, stiffness: 80 },
+            });
 
             return (
-              <React.Fragment key={idx}>
+              <div
+                key={idx}
+                style={{
+                  flex: 1,
+                  backgroundColor: theme.cardBg,
+                  border: isCurrent ? `3px solid ${accent}` : `1px solid ${theme.cardBorder}`,
+                  borderRadius: 24,
+                  padding: "32px 28px",
+                  transform: `scale(${pop * (isCurrent ? 1.05 : 0.98)}) translateY(${isCurrent ? -8 : 0}px)`,
+                  opacity: isCurrent ? 1 : isPast ? 0.72 : 0.45,
+                  boxShadow: isCurrent ? `0 22px 55px ${accent}44` : "0 10px 25px rgba(0,0,0,0.2)",
+                }}
+              >
                 <div
                   style={{
-                    flex: 1,
-                    backgroundColor: theme.cardBg,
-                    border: isCurrent
-                      ? `3px solid ${accent}`
-                      : isPast
-                      ? `1px solid ${accent}66`
-                      : `1px solid ${theme.cardBorder}`,
-                    borderRadius: 24,
-                    padding: "32px 26px",
-                    transform: `scale(${stageScale}) translateY(${isCurrent ? -8 : 0}px)`,
-                    opacity: isCurrent ? 1 : isPast ? 0.78 : 0.42,
-                    boxShadow: isCurrent ? `0 22px 55px ${accent}44` : "0 10px 25px rgba(0,0,0,0.18)",
-                    transition: "all 0.25s ease",
+                    display: "inline-block",
+                    backgroundColor: isCurrent ? accent : "rgba(148,163,184,0.2)",
+                    color: isCurrent ? "#FFFFFF" : theme.textSecondary,
+                    fontWeight: 900,
+                    fontSize: 20,
+                    padding: "6px 16px",
+                    borderRadius: 10,
+                    marginBottom: 16,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "inline-block",
-                      backgroundColor: isCurrent ? accent : isPast ? `${accent}33` : "rgba(148,163,184,0.18)",
-                      color: isCurrent ? "#FFFFFF" : isPast ? accent : theme.textSecondary,
-                      fontWeight: 900,
-                      fontSize: 19,
-                      padding: "6px 15px",
-                      borderRadius: 10,
-                      marginBottom: 16,
-                    }}
-                  >
-                    {isPast ? `✓ ${st.step}` : st.step}
-                  </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: theme.textPrimary, marginBottom: 12 }}>
-                    {st.title}
-                  </div>
-                  <div style={{ fontSize: 20, color: theme.textSecondary, lineHeight: 1.45 }}>{st.detail}</div>
+                  {isPast ? `✓ ${st.step}` : st.step}
                 </div>
-
-                {idx < steps.length - 1 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      fontSize: 32,
-                      fontWeight: 900,
-                      color: idx < activeIdx ? accent : theme.textSecondary,
-                      opacity: idx < activeIdx ? 1 : 0.35,
-                    }}
-                  >
-                    →
-                  </div>
-                )}
-              </React.Fragment>
+                <div style={{ fontSize: 27, fontWeight: 900, color: theme.textPrimary, marginBottom: 12 }}>
+                  {st.title}
+                </div>
+                <div style={{ fontSize: 21, color: theme.textSecondary, lineHeight: 1.45 }}>{st.detail}</div>
+              </div>
             );
           })}
         </div>
@@ -566,14 +554,24 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
     );
   }
 
-  // 6. PROGRESSIVE VERSUS SPLIT COMPARISON (Left points reveal first half, Right points reveal second half)
+  // 6. VERSUS SPLIT COMPARISON (Left reveals first half, Right reveals second half)
   if (chart.type === "versus") {
-    const leftPts = chart.left_points || [];
-    const rightPts = chart.right_points || [];
-    const totalPts = Math.max(1, leftPts.length + rightPts.length);
+    const halfFrames = durationInFrames * 0.45;
+    const leftIn = spring({ frame, fps, config: { damping: 15, stiffness: 75 } });
+    const rightIn = spring({ frame: Math.max(0, frame - halfFrames), fps, config: { damping: 15, stiffness: 75 } });
+    const rightActive = frame >= halfFrames;
 
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          transform: `scale(${cameraDrift})`,
+        }}
+      >
         <div style={{ fontSize: 38, fontWeight: 900, color: theme.textPrimary, marginBottom: 30, textAlign: "center" }}>
           {chart.title}
         </div>
@@ -582,98 +580,96 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
             style={{
               flex: 1,
               backgroundColor: theme.cardBg,
-              border: "1px solid rgba(239, 68, 68, 0.38)",
+              border: !rightActive ? "2px solid #EF4444" : "1px solid rgba(239, 68, 68, 0.25)",
               borderRadius: 26,
-              padding: "34px 38px",
-              transform: `translateY(${subtleFloat * 0.6}px)`,
+              padding: "36px 40px",
+              transform: `scale(${!rightActive ? 1.02 : 0.98})`,
+              opacity: rightActive ? 0.65 : leftIn,
             }}
           >
             <div style={{ fontSize: 28, fontWeight: 900, color: "#EF4444", marginBottom: 24 }}>
               ✕ {chart.left_title || "Old Approach"}
             </div>
-            {leftPts.map((pt, i) => {
-              const ptStart = Math.floor((i / totalPts) * activeSpan);
-              const pop = spring({ frame: Math.max(0, frame - ptStart), fps, config: { damping: 14, stiffness: 95 } });
-              return (
-                <div
-                  key={i}
-                  style={{
-                    fontSize: 23,
-                    color: theme.textSecondary,
-                    marginBottom: 18,
-                    paddingLeft: 18,
-                    borderLeft: "3px solid #EF4444",
-                    lineHeight: 1.4,
-                    opacity: pop,
-                    transform: `translateX(${interpolate(pop, [0, 1], [-24, 0])}px)`,
-                  }}
-                >
-                  {pt}
-                </div>
-              );
-            })}
+            {(chart.left_points || []).map((pt, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: 23,
+                  color: theme.textSecondary,
+                  marginBottom: 18,
+                  paddingLeft: 18,
+                  borderLeft: "3px solid #EF4444",
+                  lineHeight: 1.4,
+                }}
+              >
+                {pt}
+              </div>
+            ))}
           </div>
 
           <div
             style={{
               flex: 1,
               backgroundColor: theme.cardBg,
-              border: `2px solid ${accent}`,
+              border: rightActive ? `3px solid ${accent}` : `1px solid ${theme.cardBorder}`,
               borderRadius: 26,
-              padding: "34px 38px",
-              boxShadow: `0 20px 55px ${accent}28`,
-              transform: `translateY(${-subtleFloat * 0.6}px)`,
-              opacity: frame >= Math.floor((leftPts.length / totalPts) * activeSpan * 0.85) ? 1 : 0.35,
+              padding: "36px 40px",
+              boxShadow: rightActive ? `0 22px 55px ${accent}38` : "none",
+              transform: `scale(${rightActive ? 1.03 : 0.96})`,
+              opacity: Math.max(0.25, rightIn),
             }}
           >
             <div style={{ fontSize: 28, fontWeight: 900, color: accent, marginBottom: 24 }}>
-              ✓ {chart.right_title || "Automated System"}
+              ✓ {chart.right_title || "Modern Playbook"}
             </div>
-            {rightPts.map((pt, i) => {
-              const globalIdx = leftPts.length + i;
-              const ptStart = Math.floor((globalIdx / totalPts) * activeSpan);
-              const pop = spring({ frame: Math.max(0, frame - ptStart), fps, config: { damping: 14, stiffness: 95 } });
-              return (
-                <div
-                  key={i}
-                  style={{
-                    fontSize: 23,
-                    color: theme.textPrimary,
-                    fontWeight: 600,
-                    marginBottom: 18,
-                    paddingLeft: 18,
-                    borderLeft: `3px solid ${accent}`,
-                    lineHeight: 1.4,
-                    opacity: pop,
-                    transform: `translateX(${interpolate(pop, [0, 1], [24, 0])}px)`,
-                  }}
-                >
-                  {pt}
-                </div>
-              );
-            })}
+            {(chart.right_points || []).map((pt, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: 23,
+                  color: theme.textPrimary,
+                  fontWeight: 600,
+                  marginBottom: 18,
+                  paddingLeft: 18,
+                  borderLeft: `3px solid ${accent}`,
+                  lineHeight: 1.4,
+                }}
+              >
+                {pt}
+              </div>
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  // 7. VOICE-PACED KPI METRIC CARDS
-  const values = chart.values || [0, 0, 0];
+  // 7. KPI METRIC CARDS (Voice-paced sequential pop + active spotlight)
+  const values = chart.values || [100, 200, 300];
   const labels = chart.labels || ["Metric 1", "Metric 2", "Metric 3"];
+  const stepWindow = (durationInFrames * 0.72) / Math.max(1, values.length);
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        transform: `scale(${cameraDrift})`,
+      }}
+    >
       <div style={{ textAlign: "center", marginBottom: 38 }}>
         <div style={{ fontSize: 40, fontWeight: 900, color: theme.textPrimary }}>{chart.title}</div>
         {chart.subtitle && <div style={{ fontSize: 23, color: theme.textSecondary, marginTop: 10 }}>{chart.subtitle}</div>}
       </div>
       <div style={{ display: "flex", gap: 36, width: "100%" }}>
         {values.map((val, idx) => {
-          const cardStart = Math.floor((idx / Math.max(1, values.length)) * (activeSpan * 0.72));
-          const pop = spring({ frame: Math.max(0, frame - cardStart), fps, config: { damping: 13, stiffness: 90 } });
+          const startF = idx * stepWindow;
+          const pop = spring({ frame: Math.max(0, frame - startF), fps, config: { damping: 13, stiffness: 80 } });
           const animatedVal = (val * pop).toFixed(val % 1 === 0 ? 0 : 2);
-          const isLast = idx === values.length - 1;
+          const isSpotlight = Math.floor(frame / stepWindow) === idx;
           const pfx = chart.prefixes ? chart.prefixes[idx] || "" : chart.prefix || "";
           const sfx = chart.units ? chart.units[idx] || "" : chart.unit || "";
 
@@ -683,16 +679,16 @@ const SceneCanvas: React.FC<{ scene: SceneProp; theme: ThemeTokens }> = ({ scene
               style={{
                 flex: 1,
                 backgroundColor: theme.cardBg,
-                border: isLast ? `2px solid ${accent}` : `1px solid ${theme.cardBorder}`,
+                border: isSpotlight ? `3px solid ${accent}` : `1px solid ${theme.cardBorder}`,
                 borderRadius: 26,
                 padding: "44px 28px",
                 textAlign: "center",
-                transform: `translateY(${interpolate(pop, [0, 1], [35, 0])}px) scale(${pop})`,
+                transform: `scale(${pop * (isSpotlight ? 1.05 : 0.98)}) translateY(${floatY}px)`,
                 opacity: pop,
-                boxShadow: isLast ? `0 20px 50px ${accent}33` : "0 15px 40px rgba(0,0,0,0.2)",
+                boxShadow: isSpotlight ? `0 20px 50px ${accent}44` : "0 15px 40px rgba(0,0,0,0.2)",
               }}
             >
-              <div style={{ fontSize: 64, fontWeight: 900, color: isLast ? accent : theme.textPrimary, marginBottom: 14 }}>
+              <div style={{ fontSize: 64, fontWeight: 900, color: isSpotlight ? accent : theme.textPrimary, marginBottom: 14 }}>
                 {pfx}
                 {animatedVal}
                 {sfx}
