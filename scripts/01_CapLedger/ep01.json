@@ -1,0 +1,53 @@
+{
+  "channel_handle": "@CapLedger",
+  "niche": "finance",
+  "drive_folder": "01_CapLedger",
+  "episode_id": "ep01",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-AndrewNeural",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "Contrasts salaried W-2 income taxation against asset-backed credit lines used by institutional wealth holders.",
+  "title_options": [
+    "Why Wealthy Families Rarely Sell Their Assets (Buy, Borrow, Die Explained)",
+    "The Tax Mechanics Behind Asset-Backed Borrowing",
+    "Why Selling Stock Costs More Than Borrowing Against It"
+  ],
+  "thumbnail_prompt": "Dark slate background with glowing gold bar chart next to a locked vault icon, sharp financial contrast",
+  "thumbnail_text": "NEVER SELL ASSETS",
+  "seo_description": "A clear breakdown of how asset-backed borrowing works in modern wealth architecture, why capital gains taxes change liquidation math, and the risks of leverage during market downturns.\n\n00:00 The Liquidity Paradox\n01:05 Capital Gains vs Debt\n02:15 Collateral and Margin Risk\n03:20 How Step-Up Basis Works\n\nDisclaimer: This video is for educational and historical analysis purposes only and does not constitute personalized financial, tax, or legal advice.\n\n#WealthArchitecture #PersonalFinance #MacroEconomics #TaxStrategy #CapLedger",
+  "tags": ["buy borrow die", "asset backed loans", "wealth architecture", "capital gains tax", "personal finance"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "visual_query": "new york stock exchange trading floor",
+      "narration": "If an executive earns one million dollars in salary, federal and state income taxes immediately claim nearly half before a single dollar is invested. Yet when a founder holding one hundred million dollars in appreciating equity needs cash to fund a new venture or buy real estate, they rarely sell a single share."
+    },
+    {
+      "scene_number": 2,
+      "visual_query": "modern glass skyscraper financial district",
+      "narration": "Selling appreciated stock triggers an immediate taxable event. Under current capital gains rules, liquidating a multi-million dollar position converts paper wealth into realized income, permanently shrinking the compounding base that generates future returns. To avoid breaking that compounding engine, institutional wealth relies on a structural alternative."
+    },
+    {
+      "scene_number": 3,
+      "visual_query": "bank vault gold bars security",
+      "narration": "Financial planners refer to this three-stage lifecycle as Buy, Borrow, Die. First, capital is allocated into durable, cash-flowing or appreciating assets such as index equities, commercial real estate, or private equity. Rather than harvesting gains through sales, the portfolio is pledged as collateral to a private bank."
+    },
+    {
+      "scene_number": 4,
+      "visual_query": "data analytics screen financial chart",
+      "narration": "Because borrowed money is a liability rather than earned income, loan proceeds are not taxed when disbursed. If a portfolio grows at eight percent annually while a securities-backed credit line charges five percent interest, the borrower retains liquidity while their underlying equity continues compounding uninterrupted."
+    },
+    {
+      "scene_number": 5,
+      "visual_query": "storm clouds ocean waves risk",
+      "narration": "However, this mechanism carries severe downside risk when markets contract. Every securities-backed loan enforces a strict loan-to-value threshold. If equity prices drop thirty percent during a recession, the lender issues an immediate margin call, forcing the borrower to post additional cash or watch their assets liquidated at the bottom."
+    },
+    {
+      "scene_number": 6,
+      "visual_query": "city skyline sunset architecture",
+      "narration": "The final stage occurs upon estate transfer. Under stepped-up cost basis provisions in jurisdictions like the United States, inherited assets reset their tax baseline to fair market value at the date of transfer, erasing decades of unrealized capital gains. Understanding these structural incentives explains why asset ownership outpaces wage income over multi-decade horizons."
+    }
+  ]
+}
