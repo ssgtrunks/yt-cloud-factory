@@ -1,0 +1,38 @@
+{
+  "channel_handle": "@WorkflowStack-AI",
+  "niche": "ai",
+  "drive_folder": "02_WorkflowStack_AI",
+  "episode_id": "ep02",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-BrianNeural",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "Shows how headless GitHub Actions runners replace always-on local servers for zero-cost cloud automation.",
+  "title_options": [
+    "How Headless Cloud Runners Replace Expensive Always-On Servers",
+    "Zero-Hardware Automation: Running Python Pipelines in the Cloud",
+    "Why Modern Ops Teams Trigger Workflows via Git Commits"
+  ],
+  "thumbnail_prompt": "Dark server rack dissolving into glowing cyan cloud nodes with zero local hardware icon",
+  "thumbnail_text": "ZERO HARDWARE OPS",
+  "seo_description": "Discover how event-driven cloud runners execute scheduled Python automation, media rendering, and API synchronization without keeping a local computer turned on.\n\n00:00 The Idle Server Trap\n00:50 Ephemeral Cloud Containers\n01:40 Git-Triggered Automation\n\n#CloudAutomation #GitHubActions #WorkflowStack #DevOps #AIWorkflows",
+  "tags": ["github actions automation", "cloud workflows", "serverless python", "ai automation", "workflow stack"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "visual_query": "server room",
+      "narration": "Running automated scripts on a home desktop or rented virtual server wastes electricity and compute twenty-three hours a day while waiting for work. Modern automation replaces idle hardware with ephemeral cloud runners that boot on demand and vanish the second a job finishes."
+    },
+    {
+      "scene_number": 2,
+      "visual_query": "computer network",
+      "narration": "By storing structured JSON configurations inside a version-controlled repository, every new commit acts as an instant event trigger. Within seconds, an isolated Linux container provisions dependencies, authenticates via encrypted OAuth tokens, and executes heavy processing tasks in parallel."
+    },
+    {
+      "scene_number": 3,
+      "visual_query": "earth space",
+      "narration": "Once finished, outputs sync directly to cloud object storage and publishing APIs while the container wipes its temporary disk clean. Operators review finished deliverables from a mobile phone anywhere in the world without touching a local machine."
+    }
+  ]
+}
