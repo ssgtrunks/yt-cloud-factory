@@ -1,0 +1,348 @@
+import React from "react";
+import {
+  AbsoluteFill,
+  Audio,
+  Img,
+  OffthreadVideo,
+  Sequence,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
+
+export interface WordTiming {
+  word: string;
+  startSec: number;
+  endSec: number;
+}
+
+export interface ChartData {
+  type?: "bar" | "line";
+  title: string;
+  labels: string[];
+  values: number[];
+  unit?: string;
+  color?: string;
+}
+
+export interface SceneProp {
+  sceneNumber: number;
+  startSec: number;
+  durationSec: number;
+  calloutText?: string;
+  mediaType: "video" | "image" | "chart" | "grid";
+  mediaFile?: string;
+  audioFile: string;
+  chart?: ChartData;
+  words: WordTiming[];
+}
+
+export interface DocumentaryProps {
+  channelHandle: string;
+  episodeTitle: string;
+  width: number;
+  height: number;
+  totalDurationSec: number;
+  scenes: SceneProp[];
+}
+
+const AnimatedChartCard: React.FC<{ chart: ChartData }> = ({ chart }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const accent = chart.color || "#38BDF8";
+  const maxVal = Math.max(...chart.values, 1);
+
+  const cardScale = spring({ frame, fps, config: { damping: 14, stiffness: 90 } });
+
+  return (
+    <AbsoluteFill
+      style={{
+        background: "radial-gradient(circle at 30% 20%, #1E293B 0%, #090D16 100%)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "110px 140px 190px 140px",
+        fontFamily: "DejaVu Sans, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(15, 23, 42, 0.88)",
+          border: "1px solid rgba(56, 189, 248, 0.28)",
+          borderRadius: 28,
+          padding: "48px 64px",
+          boxShadow: "0 25px 70px rgba(0,0,0,0.65)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transform: `scale(${interpolate(cardScale, [0, 1], [0.94, 1])})`,
+          opacity: cardScale,
+        }}
+      >
+        <div style={{ fontSize: 38, fontWeight: 800, color: "#F8FAFC", letterSpacing: -0.5 }}>
+          {chart.title}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-around",
+            height: "68%",
+            paddingTop: 30,
+            borderBottom: "2px solid #334155",
+            gap: 48,
+          }}
+        >
+          {chart.values.map((val, idx) => {
+            const grow = spring({
+              frame: Math.max(0, frame - idx * 8),
+              fps,
+              config: { damping: 13, stiffness: 80 },
+            });
+            const barHeightPct = (val / maxVal) * 85 * grow;
+            const isHighlight = idx === chart.values.length - 1;
+            const animatedVal = (val * grow).toFixed(val % 1 === 0 ? 0 : 2);
+
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  height: "100%",
+                  flex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 34,
+                    fontWeight: 800,
+                    color: isHighlight ? accent : "#E2E8F0",
+                    marginBottom: 14,
+                  }}
+                >
+                  {chart.unit === "$" ? `$${animatedVal}` : `${animatedVal}${chart.unit || ""}`}
+                </div>
+                <div
+                  style={{
+                    width: "55%",
+                    height: `${Math.max(4, barHeightPct)}%`,
+                    background: isHighlight
+                      ? `linear-gradient(180deg, ${accent} 0%, #0284C7 100%)`
+                      : "linear-gradient(180deg, #64748B 0%, #334155 100%)",
+                    borderRadius: "14px 14px 0 0",
+                    boxShadow: isHighlight ? `0 0 30px ${accent}55` : "none",
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-around", paddingTop: 18, gap: 48 }}>
+          {chart.labels.map((lbl, idx) => (
+            <div
+              key={idx}
+              style={{
+                flex: 1,
+                textAlign: "center",
+                fontSize: 26,
+                fontWeight: 700,
+                color: "#CBD5E1",
+              }}
+            >
+              {lbl}
+            </div>
+          ))}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const SceneView: React.FC<{ scene: SceneProp; channelHandle: string }> = ({ scene, channelHandle }) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const currentSec = frame / fps;
+
+  const badgeSlide = spring({ frame, fps, config: { damping: 15, stiffness: 110 } });
+  const kenBurnsScale = interpolate(frame, [0, durationInFrames], [1.0, 1.14], {
+    extrapolateRight: "clamp",
+  });
+
+  // Group words into 7-word active subtitle chunks
+  const chunkSize = 7;
+  let activeChunkIndex = 0;
+  for (let i = 0; i < scene.words.length; i++) {
+    if (currentSec >= scene.words[i].startSec) {
+      activeChunkIndex = Math.floor(i / chunkSize);
+    }
+  }
+  const visibleWords = scene.words.slice(
+    activeChunkIndex * chunkSize,
+    activeChunkIndex * chunkSize + chunkSize
+  );
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#090D16", fontFamily: "DejaVu Sans, sans-serif" }}>
+      <Audio src={staticFile(scene.audioFile)} />
+
+      {/* Visual Layer */}
+      {scene.mediaType === "chart" && scene.chart ? (
+        <AnimatedChartCard chart={scene.chart} />
+      ) : scene.mediaType === "video" && scene.mediaFile ? (
+        <AbsoluteFill>
+          <OffthreadVideo
+            src={staticFile(scene.mediaFile)}
+            muted
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <AbsoluteFill
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(9,13,22,0.55) 0%, rgba(9,13,22,0.18) 50%, rgba(9,13,22,0.82) 100%)",
+            }}
+          />
+        </AbsoluteFill>
+      ) : scene.mediaType === "image" && scene.mediaFile ? (
+        <AbsoluteFill style={{ overflow: "hidden" }}>
+          <Img
+            src={staticFile(scene.mediaFile)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: `scale(${kenBurnsScale})`,
+            }}
+          />
+          <AbsoluteFill
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(9,13,22,0.55) 0%, rgba(9,13,22,0.2) 50%, rgba(9,13,22,0.85) 100%)",
+            }}
+          />
+        </AbsoluteFill>
+      ) : (
+        <AbsoluteFill
+          style={{
+            background: "radial-gradient(circle at 50% 40%, #1E3A8A 0%, #090D16 85%)",
+          }}
+        />
+      )}
+
+      {/* Top-Left Animated Chapter Callout Badge */}
+      {scene.calloutText && (
+        <div
+          style={{
+            position: "absolute",
+            top: 56,
+            left: 64,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            backgroundColor: "rgba(15, 23, 42, 0.86)",
+            borderLeft: "6px solid #38BDF8",
+            padding: "16px 28px",
+            borderRadius: "0 14px 14px 0",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+            transform: `translateX(${interpolate(badgeSlide, [0, 1], [-80, 0])}px)`,
+            opacity: badgeSlide,
+          }}
+        >
+          <span style={{ color: "#38BDF8", fontWeight: 800, fontSize: 22 }}>{channelHandle}</span>
+          <span style={{ color: "#475569", fontSize: 22 }}>|</span>
+          <span style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 24, letterSpacing: 0.6 }}>
+            {scene.calloutText.toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {/* Word-by-Word Highlighted Kinetic Subtitles */}
+      {visibleWords.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 68,
+            left: 110,
+            right: 110,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(9, 13, 22, 0.88)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              padding: "20px 38px",
+              borderRadius: 18,
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "10px 14px",
+              boxShadow: "0 14px 36px rgba(0,0,0,0.65)",
+            }}
+          >
+            {visibleWords.map((w, idx) => {
+              const isSpoken = currentSec >= w.startSec && currentSec <= w.endSec + 0.15;
+              return (
+                <span
+                  key={idx}
+                  style={{
+                    fontSize: 38,
+                    fontWeight: 800,
+                    color: isSpoken ? "#FACC15" : "#F8FAFC",
+                    transform: isSpoken ? "scale(1.06)" : "scale(1)",
+                    transition: "transform 0.08s ease",
+                  }}
+                >
+                  {w.word}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+export const DocumentaryVideo: React.FC<DocumentaryProps> = ({
+  channelHandle,
+  scenes,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const progressPct = Math.min(100, (frame / Math.max(1, durationInFrames)) * 100);
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#090D16" }}>
+      {scenes.map((scene, index) => {
+        const fromFrame = Math.round(scene.startSec * fps);
+        const durFrames = Math.max(15, Math.round(scene.durationSec * fps));
+        return (
+          <Sequence key={index} from={fromFrame} durationInFrames={durFrames}>
+            <SceneView scene={scene} channelHandle={channelHandle} />
+          </Sequence>
+        );
+      })}
+
+      {/* Sleek Editorial Progress Bar at Top */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          height: 7,
+          width: `${progressPct}%`,
+          background: "linear-gradient(90deg, #38BDF8 0%, #FACC15 100%)",
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
