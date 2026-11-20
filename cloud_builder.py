@@ -9,20 +9,22 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
-CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
-DRIVE_REFRESH_TOKEN = os.environ["DRIVE_REFRESH_TOKEN"]
-DRIVE_ROOT_ID = os.environ["DRIVE_ROOT_FOLDER_ID"]
+CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+DRIVE_REFRESH_TOKEN = os.environ.get("DRIVE_REFRESH_TOKEN", "").strip()
+DRIVE_ROOT_ID = os.environ.get("DRIVE_ROOT_FOLDER_ID", "").strip()
 
 CHANNEL_TOKEN_MAP = {
-    "@CapLedger": os.environ.get("YT_TOKEN_CAPLEDGER"),
-    "@WorkflowStack-AI": os.environ.get("YT_TOKEN_WORKFLOWSTACK"),
-    "@MarketAnatomyTVA": os.environ.get("YT_TOKEN_MARKETANATOMY"),
+    "@CapLedger": os.environ.get("YT_TOKEN_CAPLEDGER", "").strip(),
+    "@WorkflowStack-AI": os.environ.get("YT_TOKEN_WORKFLOWSTACK", "").strip(),
+    "@MarketAnatomyTVA": os.environ.get("YT_TOKEN_MARKETANATOMY", "").strip(),
 }
 
 HEADERS = {"User-Agent": "YTCloudFactory/1.0 (https://github.com; contact: dbs.ssgtrunks@gmail.com)"}
 
 def build_service(service_name, version, refresh_token):
+    if not refresh_token:
+        raise ValueError(f"Empty refresh token provided for {service_name}")
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -44,47 +46,65 @@ async def generate_tts(text, audio_path, srt_path, voice):
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(submaker.get_srt())
 
-def fetch_broll_clip(query, out_path, used_urls):
-    search_queries = [f"{query} filetype:video", "earth city time lapse filetype:video"]
+def fetch_broll_clip(query, out_path, used_urls, width, height, duration):
+    search_queries = [f"{query} filetype:video", "earth space time lapse filetype:video"]
     for q in search_queries:
-        api_url = (
-            "https://commons.wikimedia.org/w/api.php?action=query&format=json"
-            f"&generator=search&gsrsearch={requests.utils.quote(q)}&gsrnamespace=6&gsrlimit=8"
-            "&prop=videoinfo&viprop=url|size"
-        )
-        res = requests.get(api_url, headers=HEADERS, timeout=20).json()
-        pages = res.get("query", {}).get("pages", {})
-        for page in pages.values():
-            vinfo = page.get("videoinfo", [{}])[0]
-            vid_url = vinfo.get("url", "")
-            if vid_url in used_urls:
-                continue
-            if vid_url.lower().endswith((".webm", ".mp4", ".ogv")):
-                vid = requests.get(vid_url, headers=HEADERS, stream=True, timeout=60)
-                if vid.status_code == 200:
-                    with open(out_path, "wb") as f:
-                        for chunk in vid.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                    used_urls.add(vid_url)
-                    return
+        try:
+            api_url = (
+                "https://commons.wikimedia.org/w/api.php?action=query&format=json"
+                f"&generator=search&gsrsearch={requests.utils.quote(q)}&gsrnamespace=6&gsrlimit=8"
+                "&prop=videoinfo&viprop=url|size"
+            )
+            res = requests.get(api_url, headers=HEADERS, timeout=20).json()
+            pages = res.get("query", {}).get("pages", {})
+            for page in pages.values():
+                vinfo = page.get("videoinfo", [{}])[0]
+                vid_url = vinfo.get("url", "")
+                if vid_url in used_urls:
+                    continue
+                if vid_url.lower().endswith((".webm", ".mp4")):
+                    vid = requests.get(vid_url, headers=HEADERS, stream=True, timeout=60)
+                    if vid.status_code == 200:
+                        with open(out_path, "wb") as f:
+                            for chunk in vid.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                        # Verify ffprobe can read video stream
+                        probe = subprocess.run(
+                            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=nw=1:nk=1", out_path],
+                            capture_output=True, text=True
+                        )
+                        if probe.returncode == 0 and probe.stdout.strip():
+                            used_urls.add(vid_url)
+                            return
+        except Exception as e:
+            print(f"Wikimedia search warning for '{q}': {e}")
 
-    nasa_url = f"https://images-api.nasa.gov/search?q={requests.utils.quote(query)}&media_type=video"
-    nasa_res = requests.get(nasa_url, headers=HEADERS, timeout=20).json()
-    items = nasa_res.get("collection", {}).get("items", [])
-    for item in items[:5]:
-        href = item.get("href")
-        if href:
-            assets = requests.get(href, headers=HEADERS, timeout=15).json()
-            mp4s = [a for a in assets if a.endswith("~orig.mp4") or a.endswith("~medium.mp4")]
-            if mp4s and mp4s[0] not in used_urls:
-                vid = requests.get(mp4s[0], headers=HEADERS, stream=True, timeout=60)
-                with open(out_path, "wb") as f:
-                    for chunk in vid.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                used_urls.add(mp4s[0])
-                return
+    # NASA Public Domain HD Video Fallback
+    try:
+        nasa_url = f"https://images-api.nasa.gov/search?q={requests.utils.quote(query)}&media_type=video"
+        nasa_res = requests.get(nasa_url, headers=HEADERS, timeout=20).json()
+        for item in nasa_res.get("collection", {}).get("items", [])[:5]:
+            href = item.get("href")
+            if href:
+                assets = requests.get(href, headers=HEADERS, timeout=15).json()
+                mp4s = [a for a in assets if a.endswith("~medium.mp4") or a.endswith("~orig.mp4")]
+                if mp4s and mp4s[0] not in used_urls:
+                    vid = requests.get(mp4s[0], headers=HEADERS, stream=True, timeout=60)
+                    if vid.status_code == 200:
+                        with open(out_path, "wb") as f:
+                            for chunk in vid.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                        used_urls.add(mp4s[0])
+                        return
+    except Exception as e:
+        print(f"NASA search warning: {e}")
 
-    raise RuntimeError(f"Could not fetch B-roll for query: {query}")
+    # Guaranteed fallback: generate sleek dark animated background so build never fails
+    print(f"Using dark canvas fallback for: {query}")
+    subprocess.run([
+        "ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=0x0f172a:s={width}x{height}:d={duration}:r=30",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
+    ], check=True)
 
 def get_duration(file_path):
     cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path]
@@ -92,16 +112,18 @@ def get_duration(file_path):
 
 def get_or_create_drive_subfolder(drive, parent_id, folder_name):
     q = f"name='{folder_name}' and '{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-    res = drive.files().list(q=q, fields="files(id)").execute().get("files", [])
+    res = drive.files().list(
+        q=q, fields="files(id)", supportsAllDrives=True, includeItemsFromAllDrives=True
+    ).execute().get("files", [])
     if res:
         return res[0]["id"]
     meta = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_id]}
-    return drive.files().create(body=meta, fields="id").execute()["id"]
+    return drive.files().create(body=meta, fields="id", supportsAllDrives=True).execute()["id"]
 
 def upload_to_drive(drive, folder_id, file_path, mime_type):
     meta = {"name": os.path.basename(file_path), "parents": [folder_id]}
     media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
-    uploaded = drive.files().create(body=meta, media_body=media, fields="id").execute()
+    uploaded = drive.files().create(body=meta, media_body=media, fields="id", supportsAllDrives=True).execute()
     print(f"Backed up to 5TB Google Drive (ID: {uploaded['id']})")
 
 def upload_to_youtube(youtube, video_path, data):
@@ -150,13 +172,13 @@ def main(script_json_path):
 
         asyncio.run(generate_tts(scene["narration"], audio_file, srt_file, voice))
         duration = get_duration(audio_file) + 0.35
-        fetch_broll_clip(scene["visual_query"], raw_clip, used_urls)
+        fetch_broll_clip(scene["visual_query"], raw_clip, used_urls, width, height, duration)
 
-        vf = (
-            f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps=30,"
-            f"subtitles='{srt_file}':force_style='FontName=DejaVu Sans,FontSize=18,PrimaryColour=&H00FFFFFF,"
-            f"OutlineColour=&H00000000,BackColour=&H80000000,BorderStyle=4,Outline=1,MarginV=45'"
-        )
+        has_srt = os.path.exists(srt_file) and os.path.getsize(srt_file) > 10
+        vf = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps=30,format=yuv420p"
+        if has_srt:
+            vf += f",subtitles={srt_file}:force_style='FontName=DejaVu Sans,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H80000000,BorderStyle=4,Outline=1,MarginV=45'"
+
         subprocess.run([
             "ffmpeg", "-y", "-stream_loop", "-1", "-i", raw_clip, "-i", audio_file,
             "-t", str(duration), "-vf", vf,
