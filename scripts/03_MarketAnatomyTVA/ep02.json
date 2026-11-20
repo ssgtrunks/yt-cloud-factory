@@ -1,0 +1,38 @@
+{
+  "channel_handle": "@MarketAnatomyTVA",
+  "niche": "business",
+  "drive_folder": "03_MarketAnatomyTVA",
+  "episode_id": "ep02",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-EmmaMultilingualNeural",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "Breaks down how containerization by Malcom McLean cut global ocean freight costs by over 90 percent.",
+  "title_options": [
+    "How a Steel Box Cut Global Shipping Costs by 94 Percent",
+    "The Container Revolution That Built Modern Global Trade",
+    "Why Standardized Cargo Boxes Changed World Economics Forever"
+  ],
+  "thumbnail_prompt": "Massive cargo ship stacked with vibrant containers illuminated by golden port lights at dusk",
+  "thumbnail_text": "94% CHEAPER TRADE",
+  "seo_description": "Before 1956, loading a single cargo ship took weeks of manual dock labor. Explore how standardized steel shipping containers slashed freight costs by 94 percent and reshaped global supply chains.\n\n00:00 The Break-Bulk Bottleneck\n00:50 Standardizing the Steel Box\n01:40 Global Supply Chain Explosion\n\n#SupplyChain #GlobalEconomics #MarketAnatomy #BusinessHistory #ContainerShipping",
+  "tags": ["shipping container history", "global supply chain", "malcom mclean", "economics case study", "market anatomy"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "visual_query": "cargo ship",
+      "narration": "Before nineteen fifty-six, loading a single merchant vessel required hundreds of dockworkers hauling loose sacks, barrels, and wooden crates one by one. Ships spent more than half their working lives sitting idle in port, and freight charges accounted for up to a quarter of a product's retail price."
+    },
+    {
+      "scene_number": 2,
+      "visual_query": "container port",
+      "narration": "Trucking entrepreneur Malcom McLean realized that separating the trailer box from its wheels allowed cranes to lift standardized steel containers directly from trucks onto ships in minutes. Loading costs plunged from nearly six dollars per ton down to sixteen cents."
+    },
+    {
+      "scene_number": 3,
+      "visual_query": "ocean container",
+      "narration": "Once international standards locked in twenty-foot and forty-foot dimensions, ports worldwide rebuilt around automated cranes and intermodal rail links. That single logistics breakthrough made cross-continental manufacturing economically viable and powered fifty years of global trade expansion."
+    }
+  ]
+}
