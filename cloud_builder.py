@@ -46,40 +46,39 @@ async def generate_tts(text, audio_path, srt_path, voice):
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(submaker.get_srt())
 
-def fetch_broll_clip(query, out_path, used_urls, width, height, duration):
-    search_queries = [f"{query} filetype:video", "earth space time lapse filetype:video"]
-    for q in search_queries:
-        try:
-            api_url = (
-                "https://commons.wikimedia.org/w/api.php?action=query&format=json"
-                f"&generator=search&gsrsearch={requests.utils.quote(q)}&gsrnamespace=6&gsrlimit=8"
-                "&prop=videoinfo&viprop=url|size"
-            )
-            res = requests.get(api_url, headers=HEADERS, timeout=20).json()
-            pages = res.get("query", {}).get("pages", {})
-            for page in pages.values():
-                vinfo = page.get("videoinfo", [{}])[0]
-                vid_url = vinfo.get("url", "")
-                if vid_url in used_urls:
-                    continue
-                if vid_url.lower().endswith((".webm", ".mp4")):
-                    vid = requests.get(vid_url, headers=HEADERS, stream=True, timeout=60)
-                    if vid.status_code == 200:
-                        with open(out_path, "wb") as f:
-                            for chunk in vid.iter_content(chunk_size=8192):
-                                f.write(chunk)
-                        # Verify ffprobe can read video stream
-                        probe = subprocess.run(
-                            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=nw=1:nk=1", out_path],
-                            capture_output=True, text=True
-                        )
-                        if probe.returncode == 0 and probe.stdout.strip():
-                            used_urls.add(vid_url)
-                            return
-        except Exception as e:
-            print(f"Wikimedia search warning for '{q}': {e}")
+def fetch_visual_clip(query, out_path, used_urls, width, height, duration):
+    # 1. Try Wikimedia Commons HD Video
+    try:
+        api_url = (
+            "https://commons.wikimedia.org/w/api.php?action=query&format=json"
+            f"&generator=search&gsrsearch={requests.utils.quote(query + ' filetype:video')}&gsrnamespace=6&gsrlimit=8"
+            "&prop=videoinfo&viprop=url|size"
+        )
+        res = requests.get(api_url, headers=HEADERS, timeout=20).json()
+        for page in res.get("query", {}).get("pages", {}).values():
+            vinfo = page.get("videoinfo", [{}])[0]
+            vid_url = vinfo.get("url", "")
+            size = vinfo.get("size", 0)
+            if vid_url in used_urls or size > 60_000_000:
+                continue
+            if vid_url.lower().endswith((".webm", ".mp4")):
+                vid = requests.get(vid_url, headers=HEADERS, stream=True, timeout=45)
+                if vid.status_code == 200:
+                    with open(out_path, "wb") as f:
+                        for chunk in vid.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    probe = subprocess.run(
+                        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=nw=1:nk=1", out_path],
+                        capture_output=True, text=True
+                    )
+                    if probe.returncode == 0 and probe.stdout.strip():
+                        used_urls.add(vid_url)
+                        print(f"  -> Matched Wikimedia Video: {vid_url.split('/')[-1]}")
+                        return
+    except Exception as e:
+        print(f"  -> Wikimedia video note: {e}")
 
-    # NASA Public Domain HD Video Fallback
+    # 2. Try NASA Public Domain HD Video
     try:
         nasa_url = f"https://images-api.nasa.gov/search?q={requests.utils.quote(query)}&media_type=video"
         nasa_res = requests.get(nasa_url, headers=HEADERS, timeout=20).json()
@@ -87,24 +86,57 @@ def fetch_broll_clip(query, out_path, used_urls, width, height, duration):
             href = item.get("href")
             if href:
                 assets = requests.get(href, headers=HEADERS, timeout=15).json()
-                mp4s = [a for a in assets if a.endswith("~medium.mp4") or a.endswith("~orig.mp4")]
+                mp4s = [a for a in assets if a.endswith("~medium.mp4") or a.endswith("~mobile.mp4")]
                 if mp4s and mp4s[0] not in used_urls:
-                    vid = requests.get(mp4s[0], headers=HEADERS, stream=True, timeout=60)
+                    vid = requests.get(mp4s[0], headers=HEADERS, stream=True, timeout=45)
                     if vid.status_code == 200:
                         with open(out_path, "wb") as f:
                             for chunk in vid.iter_content(chunk_size=8192):
                                 f.write(chunk)
                         used_urls.add(mp4s[0])
+                        print(f"  -> Matched NASA HD Video: {mp4s[0].split('/')[-1]}")
                         return
     except Exception as e:
-        print(f"NASA search warning: {e}")
+        print(f"  -> NASA video note: {e}")
 
-    # Guaranteed fallback: generate sleek dark animated background so build never fails
-    print(f"Using dark canvas fallback for: {query}")
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=0x0f172a:s={width}x{height}:d={duration}:r=30",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
-    ], check=True)
+    # 3. High-Res Wikimedia Photography + Smooth Ken Burns Zoom Motion (Eliminates blank screens)
+    for img_q in [query, "world map finance technology"]:
+        try:
+            img_api = (
+                "https://commons.wikimedia.org/w/api.php?action=query&format=json"
+                f"&generator=search&gsrsearch={requests.utils.quote(img_q + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=10"
+                "&prop=imageinfo&iiprop=url|size&iiurlwidth=1920"
+            )
+            ires = requests.get(img_api, headers=HEADERS, timeout=20).json()
+            for page in ires.get("query", {}).get("pages", {}).values():
+                iinfo = page.get("imageinfo", [{}])[0]
+                thumb_url = iinfo.get("thumburl") or iinfo.get("url", "")
+                w_orig = iinfo.get("width", 0)
+                if not thumb_url or thumb_url in used_urls or w_orig < 1000:
+                    continue
+                if thumb_url.lower().endswith((".jpg", ".jpeg", ".png")):
+                    raw_img = out_path + ".jpg"
+                    r = requests.get(thumb_url, headers=HEADERS, timeout=30)
+                    if r.status_code == 200:
+                        with open(raw_img, "wb") as f:
+                            f.write(r.content)
+                        frames = int(duration * 30) + 15
+                        kb_filter = (
+                            f"scale=2400:-1,zoompan=z='min(zoom+0.0008,1.18)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+                            f":d={frames}:s={width}x{height}:fps=30,format=yuv420p"
+                        )
+                        res_ff = subprocess.run([
+                            "ffmpeg", "-y", "-i", raw_img, "-vf", kb_filter,
+                            "-t", str(duration), "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
+                        ], capture_output=True)
+                        if res_ff.returncode == 0:
+                            used_urls.add(thumb_url)
+                            print(f"  -> Rendered Ken Burns HD Photo: {thumb_url.split('/')[-1]}")
+                            return
+        except Exception as e:
+            print(f"  -> Photo fallback note: {e}")
+
+    raise RuntimeError(f"No visual asset found for query: {query}")
 
 def get_duration(file_path):
     cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path]
@@ -154,7 +186,7 @@ def main(script_json_path):
     if not yt_token:
         raise ValueError(f"Missing YouTube Refresh Token secret for channel: {handle}")
 
-    voice = data.get("voice_id", "en-US-AndrewNeural")
+    voice = data.get("voice_id", "en-US-AvaMultilingualNeural")
     aspect = data.get("aspect_ratio", "16:9")
     width, height = (1080, 1920) if aspect == "9:16" else (1920, 1080)
 
@@ -172,7 +204,7 @@ def main(script_json_path):
 
         asyncio.run(generate_tts(scene["narration"], audio_file, srt_file, voice))
         duration = get_duration(audio_file) + 0.35
-        fetch_broll_clip(scene["visual_query"], raw_clip, used_urls, width, height, duration)
+        fetch_visual_clip(scene["visual_query"], raw_clip, used_urls, width, height, duration)
 
         has_srt = os.path.exists(srt_file) and os.path.getsize(srt_file) > 10
         vf = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps=30,format=yuv420p"
