@@ -1,0 +1,48 @@
+{
+  "channel_handle": "@WorkflowStack-AI",
+  "niche": "ai",
+  "drive_folder": "02_WorkflowStack_AI",
+  "episode_id": "ep01",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-BrianNeural",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "Shows why isolated chat prompts fail in business and how event-driven webhook pipelines eliminate repetitive admin work.",
+  "title_options": [
+    "Why Copy-Pasting Into AI Fails (And How Event-Driven Workflows Fix It)",
+    "4 Automated AI Pipelines Replacing Manual Operations",
+    "From Chat Prompts to Zero-Touch Cloud Automation"
+  ],
+  "thumbnail_prompt": "Clean dark blueprint showing automated nodes connecting inbox, database, and cloud server in electric cyan",
+  "thumbnail_text": "STOP PROMPTING MANUALLY",
+  "seo_description": "Most teams still use AI as a manual copy-paste chat box. Here is how event-driven webhooks, structured JSON outputs, and headless cloud runners automate repetitive operations without human intervention.\n\n00:00 The Copy-Paste Bottleneck\n01:00 Structured JSON Over Free Text\n02:05 Event-Driven Webhook Triggers\n03:10 Human-in-the-Loop Quality Gates\n\n#AIAutomation #WorkflowStack #SaaS #CloudComputing #ProductivitySystems",
+  "tags": ["ai workflows", "business automation", "webhook automation", "json pipelines", "productivity systems"],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "visual_query": "server room data center blinking lights",
+      "narration": "Most professionals use artificial intelligence like a faster typewriter—opening a browser tab, typing a prompt, copying the text, and pasting it into a spreadsheet or email. That manual loop saves minutes, not hours, because a human is still acting as the glue between every software tool."
+    },
+    {
+      "scene_number": 2,
+      "visual_query": "computer code terminal screen programming",
+      "narration": "Real operational leverage begins when large language models stop outputting conversational paragraphs and start outputting strict, machine-readable JSON. When an AI model formats every response into predictable keys and arrays, downstream scripts can parse, route, and execute actions automatically without human formatting."
+    },
+    {
+      "scene_number": 3,
+      "visual_query": "global network fiber optic connections",
+      "narration": "Consider inbound lead triage and invoice reconciliation. Instead of an operations manager reading fifty emails every morning, a webhook intercepts each incoming payload, extracts vendor terms, validates tax codes against a database, and stages a ready-to-approve draft inside the accounting platform."
+    },
+    {
+      "scene_number": 4,
+      "visual_query": "cloud computing infrastructure network",
+      "narration": "Running these workflows on ephemeral cloud runners eliminates local hardware bottlenecks. A lightweight container spins up on a schedule, executes the Python logic, syncs verified records to cloud storage, and terminates cleanly—costing fractions of a cent per run while operating twenty-four hours a day."
+    },
+    {
+      "scene_number": 5,
+      "visual_query": "engineer reviewing dashboard analytics",
+      "narration": "The highest-performing automation architectures never remove human judgment completely; they relocate it. By automating ninety percent of data gathering, formatting, and staging, operators spend five minutes reviewing finished drafts on a mobile dashboard instead of five hours assembling raw files."
+    }
+  ]
+}
