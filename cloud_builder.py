@@ -2,13 +2,11 @@ import os
 import sys
 import json
 import time
+import shutil
 import asyncio
 import subprocess
 import requests
 import edge_tts
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -25,7 +23,7 @@ CHANNEL_TOKEN_MAP = {
 }
 
 HEADERS = {
-    "User-Agent": "YTCloudFactoryBot/3.0 (https://github.com/ssgtrunks/yt-cloud-factory; contact: dbs.ssgtrunks@gmail.com)"
+    "User-Agent": "YTCloudFactoryBot/4.0 (https://github.com/ssgtrunks/yt-cloud-factory; contact: dbs.ssgtrunks@gmail.com)"
 }
 
 def build_service(service_name, version, refresh_token):
@@ -40,17 +38,22 @@ def build_service(service_name, version, refresh_token):
     )
     return build(service_name, version, credentials=creds)
 
-async def generate_tts(text, audio_path, srt_path, voice):
+async def generate_tts_with_words(text, audio_path, voice):
     communicate = edge_tts.Communicate(text, voice, rate="+5%")
-    submaker = edge_tts.SubMaker()
+    words = []
     with open(audio_path, "wb") as f:
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 f.write(chunk["data"])
             elif chunk["type"] == "WordBoundary":
-                submaker.feed(chunk)
-    with open(srt_path, "w", encoding="utf-8") as f:
-        f.write(submaker.get_srt())
+                start_sec = chunk["offset"] / 10_000_000.0
+                dur_sec = chunk["duration"] / 10_000_000.0
+                words.append({
+                    "word": chunk["text"],
+                    "startSec": round(start_sec, 3),
+                    "endSec": round(start_sec + dur_sec, 3),
+                })
+    return words
 
 def verify_video_file(path):
     if not os.path.exists(path) or os.path.getsize(path) < 25000:
@@ -61,71 +64,11 @@ def verify_video_file(path):
     )
     return probe.returncode == 0 and bool(probe.stdout.strip())
 
-def render_animated_chart(chart_data, out_path, width, height, duration):
-    """Renders a sleek, dark-mode editorial bar/line chart with smooth zoom motion."""
-    img_path = out_path + ".png"
-    plt.style.use("dark_background")
-    fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)
-    fig.patch.set_facecolor("#0B1120")
-    ax.set_facecolor("#0F172A")
-
-    labels = chart_data.get("labels", ["Before", "After"])
-    values = chart_data.get("values", [100, 25])
-    chart_type = chart_data.get("type", "bar")
-    title = chart_data.get("title", "Key Data Breakdown")
-    unit = chart_data.get("unit", "")
-    accent = chart_data.get("color", "#38BDF8")
-
-    if chart_type == "line":
-        ax.plot(labels, values, color=accent, linewidth=5, marker="o", markersize=12)
-        ax.fill_between(labels, values, color=accent, alpha=0.18)
-    else:
-        bars = ax.bar(
-            labels,
-            values,
-            color=[accent if i == len(values) - 1 else "#475569" for i in range(len(values))],
-            width=0.52,
-        )
-        for bar, val in zip(bars, values):
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + (max(values) * 0.03),
-                f"{val}{unit}",
-                ha="center",
-                va="bottom",
-                fontsize=22,
-                fontweight="bold",
-                color="#F8FAFC",
-            )
-
-    ax.set_title(title, fontsize=30, fontweight="bold", color="#F8FAFC", pad=35)
-    ax.tick_params(axis="x", labelsize=20, colors="#CBD5E1")
-    ax.tick_params(axis="y", labelsize=18, colors="#94A3B8")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_color("#334155")
-    ax.spines["bottom"].set_color("#334155")
-    ax.grid(axis="y", linestyle="--", alpha=0.2, color="#94A3B8")
-    ax.set_ylim(0, max(values) * 1.22)
-
-    plt.tight_layout(pad=4.0)
-    plt.savefig(img_path, facecolor=fig.get_facecolor())
-    plt.close(fig)
-
-    frames = int(duration * 30) + 15
-    kb_filter = (
-        f"scale=2100:-1,zoompan=z='min(zoom+0.0006,1.08)'"
-        f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-        f":d={frames}:s={width}x{height}:fps=30,format=yuv420p"
-    )
-    subprocess.run([
-        "ffmpeg", "-y", "-i", img_path, "-vf", kb_filter,
-        "-t", str(duration), "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
-    ], check=True)
-    print(f"  -> Rendered Animated Editorial Chart: {title}")
+def get_duration(file_path):
+    cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path]
+    return float(subprocess.check_output(cmd).decode().strip())
 
 def fetch_wikimedia_video(query, out_path, used_urls):
-    """Keyless real moving video search on Wikimedia Commons."""
     words = [w for w in query.strip().split() if len(w) > 2]
     queries = [query] + ([words[0]] if words else [])
     for q in queries:
@@ -148,7 +91,7 @@ def fetch_wikimedia_video(query, out_path, used_urls):
                 size = vinfo.get("size", 0)
                 if not vid_url or vid_url in used_urls or size > 45_000_000:
                     continue
-                if vid_url.lower().endswith((".mp4", ".webm")):
+                if vid_url.lower().endswith(".mp4"):
                     r = requests.get(vid_url, headers=HEADERS, stream=True, timeout=45)
                     if r.status_code == 200:
                         with open(out_path, "wb") as f:
@@ -156,16 +99,14 @@ def fetch_wikimedia_video(query, out_path, used_urls):
                                 f.write(chunk)
                         if verify_video_file(out_path):
                             used_urls.add(vid_url)
-                            print(f"  -> Matched Wikimedia Moving Video ({q}): {vid_url.split('/')[-1][:45]}")
+                            print(f"  -> Matched Wikimedia MP4 Video ({q})")
                             return True
         except Exception as e:
             print(f"  -> Wikimedia video note ({q}): {e}")
     return False
 
 def fetch_archive_video(query, out_path, used_urls):
-    """Keyless public-domain moving MP4 search on Internet Archive."""
     try:
-        search_url = "https://archive.org/advancedsearch.php"
         params = {
             "q": f"({query}) AND mediatype:(movies)",
             "fl[]": ["identifier"],
@@ -173,9 +114,8 @@ def fetch_archive_video(query, out_path, used_urls):
             "page": 1,
             "output": "json",
         }
-        res = requests.get(search_url, params=params, headers=HEADERS, timeout=20).json()
-        docs = res.get("response", {}).get("docs", [])
-        for doc in docs:
+        res = requests.get("https://archive.org/advancedsearch.php", params=params, headers=HEADERS, timeout=20).json()
+        for doc in res.get("response", {}).get("docs", []):
             ident = doc.get("identifier")
             if not ident or ident in used_urls:
                 continue
@@ -192,15 +132,14 @@ def fetch_archive_video(query, out_path, used_urls):
                                 out_f.write(chunk)
                         if verify_video_file(out_path):
                             used_urls.add(ident)
-                            print(f"  -> Matched Internet Archive Moving Video ({query}): {ident}")
+                            print(f"  -> Matched Internet Archive MP4 ({query}): {ident}")
                             return True
     except Exception as e:
         print(f"  -> Internet Archive note ({query}): {e}")
     return False
 
 def fetch_nasa_video(query, out_path, used_urls):
-    """Keyless 1080p HD moving video from NASA Image & Video Library."""
-    for q in [query, "earth orbit", "satellite network"]:
+    for q in [query, "earth orbit"]:
         try:
             res = requests.get(
                 "https://images-api.nasa.gov/search",
@@ -222,93 +161,42 @@ def fetch_nasa_video(query, out_path, used_urls):
                                 f.write(chunk)
                         if verify_video_file(out_path):
                             used_urls.add(href)
-                            print(f"  -> Matched NASA HD Moving Video ({q})")
+                            print(f"  -> Matched NASA HD MP4 ({q})")
                             return True
         except Exception as e:
             print(f"  -> NASA note ({q}): {e}")
     return False
 
-def search_wikimedia_images(search_term, limit=10):
-    params = {
-        "action": "query",
-        "format": "json",
-        "generator": "search",
-        "gsrsearch": search_term,
-        "gsrnamespace": 6,
-        "gsrlimit": limit,
-        "prop": "imageinfo",
-        "iiprop": "url|size|mime",
-        "iiurlwidth": 1920,
-    }
-    res = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=HEADERS, timeout=20).json()
-    results = []
-    for page in res.get("query", {}).get("pages", {}).values():
-        iinfo = page.get("imageinfo", [{}])[0]
-        if iinfo.get("mime") in ("image/jpeg", "image/png") and iinfo.get("width", 0) >= 900:
-            u = iinfo.get("thumburl") or iinfo.get("url", "")
-            if u:
-                results.append(u)
-    return results
-
-def fetch_scene_visual(scene, out_path, used_urls, width, height, duration):
-    # Priority 1: Custom Animated Data Chart if provided in JSON scene
-    if scene.get("chart"):
-        render_animated_chart(scene["chart"], out_path, width, height, duration)
-        return
-
-    query = scene.get("visual_query", "technology")
-
-    # Priority 2: Keyless Real Moving Videos (Wikimedia -> Internet Archive -> NASA)
-    if fetch_wikimedia_video(query, out_path, used_urls):
-        return
-    if fetch_archive_video(query, out_path, used_urls):
-        return
-    if fetch_nasa_video(query, out_path, used_urls):
-        return
-
-    # Priority 3: High-Res Wikimedia Photography with Smooth Ken Burns Motion
+def fetch_wikimedia_image(query, out_path, used_urls):
     for q in [query, "skyline", "technology"]:
         try:
-            for img_url in search_wikimedia_images(q):
-                if img_url in used_urls:
-                    continue
-                r = requests.get(img_url, headers=HEADERS, timeout=30)
-                if r.status_code == 200 and r.headers.get("Content-Type", "").startswith("image/"):
-                    raw_img = out_path + ".img"
-                    with open(raw_img, "wb") as f:
-                        f.write(r.content)
-                    frames = int(duration * 30) + 15
-                    kb_filter = (
-                        f"scale=2400:-1,zoompan=z='min(zoom+0.0008,1.16)'"
-                        f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-                        f":d={frames}:s={width}x{height}:fps=30,format=yuv420p"
-                    )
-                    subprocess.run([
-                        "ffmpeg", "-y", "-i", raw_img, "-vf", kb_filter,
-                        "-t", str(duration), "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
-                    ], capture_output=True)
-                    if verify_video_file(out_path):
-                        used_urls.add(img_url)
-                        print(f"  -> Rendered Ken Burns Photo ({q})")
-                        return
+            params = {
+                "action": "query",
+                "format": "json",
+                "generator": "search",
+                "gsrsearch": q,
+                "gsrnamespace": 6,
+                "gsrlimit": 10,
+                "prop": "imageinfo",
+                "iiprop": "url|size|mime",
+                "iiurlwidth": 1920,
+            }
+            res = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=HEADERS, timeout=20).json()
+            for page in res.get("query", {}).get("pages", {}).values():
+                iinfo = page.get("imageinfo", [{}])[0]
+                if iinfo.get("mime") in ("image/jpeg", "image/png") and iinfo.get("width", 0) >= 900:
+                    u = iinfo.get("thumburl") or iinfo.get("url", "")
+                    if u and u not in used_urls:
+                        r = requests.get(u, headers=HEADERS, timeout=30)
+                        if r.status_code == 200 and r.headers.get("Content-Type", "").startswith("image/"):
+                            with open(out_path, "wb") as f:
+                                f.write(r.content)
+                            used_urls.add(u)
+                            print(f"  -> Matched High-Res Photo ({q})")
+                            return True
         except Exception as e:
-            print(f"  -> Photo fallback note: {e}")
-
-    # Priority 4: Guaranteed Animated Editorial Motion Canvas (Zero-crash safety net)
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "lavfi",
-        "-i", f"gradients=s={width}x{height}:c0=0x0B1120:c1=0x1E3A8A:duration={duration}:speed=0.06",
-        "-vf", "drawgrid=width=120:height=120:thickness=1:color=white@0.06,format=yuv420p",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path
-    ], check=True)
-    print(f"  -> Rendered Animated Motion Grid Fallback ({query})")
-
-def get_duration(file_path):
-    cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path]
-    return float(subprocess.check_output(cmd).decode().strip())
-
-def escape_drawtext(text):
-    return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "").replace("%", "\\%")
+            print(f"  -> Photo search note ({q}): {e}")
+    return False
 
 def get_or_create_drive_subfolder(drive, parent_id, folder_name):
     q = f"name='{folder_name}' and '{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
@@ -358,67 +246,100 @@ def main(script_json_path):
     aspect = data.get("aspect_ratio", "16:9")
     width, height = (1080, 1920) if aspect == "9:16" else (1920, 1080)
 
-    work_dir = f"/tmp/yt_build_{data['drive_folder']}_{data['episode_id']}"
-    os.makedirs(work_dir, exist_ok=True)
-    segment_files = []
+    # Remotion reads staticFile() assets from ./public/
+    public_assets_dir = os.path.join("public", "assets")
+    if os.path.exists(public_assets_dir):
+        shutil.rmtree(public_assets_dir)
+    os.makedirs(public_assets_dir, exist_ok=True)
+
+    remotion_scenes = []
     used_urls = set()
+    cursor_sec = 0.0
 
     for idx, scene in enumerate(data["scenes"]):
-        print(f"[{handle}] Scene {idx+1}/{len(data['scenes'])}: {scene.get('visual_query', 'chart')}")
-        audio_file = f"{work_dir}/a_{idx}.mp3"
-        srt_file = f"{work_dir}/s_{idx}.srt"
-        raw_clip = f"{work_dir}/r_{idx}.mp4"
-        seg_clip = f"{work_dir}/seg_{idx}.mp4"
+        print(f"[{handle}] Preparing Scene {idx+1}/{len(data['scenes'])}: {scene.get('visual_query', 'chart')}")
+        audio_name = f"audio_{idx}.mp3"
+        audio_disk_path = os.path.join(public_assets_dir, audio_name)
+        words = asyncio.run(generate_tts_with_words(scene["narration"], audio_disk_path, voice))
+        dur = get_duration(audio_disk_path) + 0.45
 
-        asyncio.run(generate_tts(scene["narration"], audio_file, srt_file, voice))
-        duration = get_duration(audio_file) + 0.40
-        fetch_scene_visual(scene, raw_clip, used_urls, width, height, duration)
+        media_type = "grid"
+        media_rel = None
 
-        vf_parts = [
-            f"scale={width}:{height}:force_original_aspect_ratio=increase",
-            f"crop={width}:{height}",
-            "fps=30",
-            "format=yuv420p",
-        ]
+        if scene.get("chart"):
+            media_type = "chart"
+        else:
+            q = scene.get("visual_query", "technology")
+            vid_name = f"clip_{idx}.mp4"
+            vid_disk_path = os.path.join(public_assets_dir, vid_name)
+            img_name = f"img_{idx}.jpg"
+            img_disk_path = os.path.join(public_assets_dir, img_name)
 
-        callout = scene.get("callout_text", "").strip()
-        if callout:
-            safe_callout = escape_drawtext(callout.upper())
-            vf_parts.append(
-                f"drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
-                f"text='{safe_callout}':fontcolor=white:fontsize=34:"
-                f"box=1:boxcolor=0x0F172A@0.82:boxborderw=18:"
-                f"x=70:y=70:enable='between(t,0.3,{min(duration-0.3, 5.5)})'"
-            )
+            if (
+                fetch_wikimedia_video(q, vid_disk_path, used_urls)
+                or fetch_archive_video(q, vid_disk_path, used_urls)
+                or fetch_nasa_video(q, vid_disk_path, used_urls)
+            ):
+                media_type = "video"
+                media_rel = f"assets/{vid_name}"
+            elif fetch_wikimedia_image(q, img_disk_path, used_urls):
+                media_type = "image"
+                media_rel = f"assets/{img_name}"
 
-        if os.path.exists(srt_file) and os.path.getsize(srt_file) > 10:
-            vf_parts.append(
-                f"subtitles={srt_file}:force_style='FontName=DejaVu Sans,FontSize=21,Bold=1,"
-                f"PrimaryColour=&H0000FFFF,OutlineColour=&H00000000,BackColour=&H99000000,"
-                f"BorderStyle=4,Outline=2,Shadow=1,MarginV=55'"
-            )
+        remotion_scenes.append({
+            "sceneNumber": idx + 1,
+            "startSec": round(cursor_sec, 3),
+            "durationSec": round(dur, 3),
+            "calloutText": scene.get("callout_text", ""),
+            "mediaType": media_type,
+            "mediaFile": media_rel,
+            "audioFile": f"assets/{audio_name}",
+            "chart": scene.get("chart"),
+            "words": words,
+        })
+        cursor_sec += dur
 
-        vf = ",".join(vf_parts)
+    props_payload = {
+        "channelHandle": handle,
+        "episodeTitle": data["title_options"][0],
+        "width": width,
+        "height": height,
+        "totalDurationSec": round(cursor_sec, 3),
+        "scenes": remotion_scenes,
+    }
 
-        subprocess.run([
-            "ffmpeg", "-y", "-stream_loop", "-1", "-i", raw_clip, "-i", audio_file,
-            "-t", str(duration), "-vf", vf,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "21",
-            "-c:a", "aac", "-b:a", "192k", "-shortest", seg_clip
-        ], check=True)
-        segment_files.append(seg_clip)
+    props_file = "/tmp/remotion_props.json"
+    with open(props_file, "w", encoding="utf-8") as f:
+        json.dump(props_payload, f)
 
-    concat_txt = f"{work_dir}/concat.txt"
-    with open(concat_txt, "w", encoding="utf-8") as f:
-        for seg in segment_files:
-            f.write(f"file '{seg}'\n")
+    raw_remotion_mp4 = "/tmp/remotion_raw.mp4"
+    print(f"[{handle}] Rendering Remotion 1080p Studio Composition...")
+    subprocess.run([
+        "npx", "remotion", "render", "remotion/index.ts", "DocumentaryVideo",
+        raw_remotion_mp4, f"--props={props_file}", "--concurrency=2"
+    ], check=True)
 
-    raw_concat = f"{work_dir}/raw_concat.mp4"
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", raw_concat], check=True)
-
-    total_dur = get_duration(raw_concat)
-    final_mp4 = f"{work_dir}/{data['drive_folder']}_{data['episode_id']}.mp4"
+    # Mix warm ambient synth pad (-26 dB) under voiceover
+    total_dur = get_duration(raw_remotion_mp4)
+    final_mp4 = f"/tmp/{data['drive_folder']}_{data['episode_id']}.mp4"
     ambient_expr = (
         f"aevalsrc=0.012*sin(2*PI*110*t)+0.008*sin(2*PI*164.81*t)"
         f"+0.006*sin(2*PI*220*t):s=44100:d={total_dur}"
     )
+    subprocess.run([
+        "ffmpeg", "-y", "-i", raw_remotion_mp4, "-f", "lavfi", "-i", ambient_expr,
+        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]",
+        "-map", "0:v", "-map", "[aout]",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", final_mp4
+    ], check=True)
+
+    drive = build_service("drive", "v3", DRIVE_REFRESH_TOKEN)
+    youtube = build_service("youtube", "v3", yt_token)
+
+    sub_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, data["drive_folder"])
+    upload_to_drive(drive, sub_id, final_mp4, "video/mp4")
+    upload_to_drive(drive, sub_id, script_json_path, "application/json")
+    upload_to_youtube(youtube, final_mp4, data)
+
+if __name__ == "__main__":
+    main(sys.argv[1])
