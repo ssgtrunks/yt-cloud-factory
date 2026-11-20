@@ -5,14 +5,13 @@ on:
     paths:
       - 'scripts/**/*.json'
   schedule:
-    # Runs automatically every Sunday at 10:00 AM IST (04:30 UTC) while laptop is off
     - cron: '30 4 * * 0'
   workflow_dispatch:
     inputs:
       script_path:
-        description: 'Path to script JSON (or type NEXT to render next queued episode across all channels)'
+        description: 'Path to script JSON (or AUTO_NEXT to render next unrendered episode per channel)'
         required: true
-        default: 'NEXT'
+        default: 'AUTO_NEXT'
 
 jobs:
   build-video:
@@ -62,15 +61,8 @@ jobs:
                 python cloud_builder.py "$file"
               fi
             done
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.script_path }}" != "NEXT" ]; then
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.script_path }}" != "AUTO_NEXT" ]; then
             python cloud_builder.py "${{ github.event.inputs.script_path }}"
           else
-            # Weekly Sunday Cron or manual NEXT trigger: picks the latest episode per channel folder
-            for dir in scripts/*/; do
-              LATEST=$(ls -1 "$dir"ep*.json 2>/dev/null | sort | tail -n 1)
-              if [ -f "$LATEST" ]; then
-                echo "Scheduled weekly batch rendering: $LATEST"
-                python cloud_builder.py "$LATEST"
-              fi
-            done
+            python cloud_builder.py AUTO_NEXT
           fi
