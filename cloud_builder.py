@@ -1,4 +1,5 @@
 import os
+import io
 import sys
 import glob
 import json
@@ -8,7 +9,7 @@ import subprocess
 import edge_tts
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
@@ -22,9 +23,9 @@ CHANNEL_TOKEN_MAP = {
 }
 
 DEFAULT_THEMES = {
-    "@CapLedger": ("glass_neon", "#38BDF8"),
-    "@WorkflowStack-AI": ("cyber_dark", "#10B981"),
-    "@MarketAnatomyTVA": ("modern_bento", "#059669"),
+    "@CapLedger": ("glass_neon", "#38BDF8", "hosts/capledger.png", "Alex Mercer", "en-US-AndrewMultilingualNeural"),
+    "@WorkflowStack-AI": ("cyber_dark", "#10B981", "hosts/workflowstack.png", "Devon Vance", "en-US-BrianNeural"),
+    "@MarketAnatomyTVA": ("modern_bento", "#059669", "hosts/marketanatomy.png", "Ryan Carter", "en-US-ChristopherNeural"),
 }
 
 def build_service(service_name, version, refresh_token):
@@ -84,6 +85,29 @@ def get_or_create_drive_subfolder(drive, parent_id, folder_name):
     meta = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_id]}
     return drive.files().create(body=meta, fields="id", supportsAllDrives=True).execute()["id"]
 
+def download_host_from_drive(drive, host_filename, dest_path):
+    """Fetches host PNG from YT_Cloud_Factory/hosts/ in Google Drive."""
+    try:
+        hosts_folder_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, "hosts")
+        q = f"name='{host_filename}' and '{hosts_folder_id}' in parents and trashed=false"
+        files = drive.files().list(
+            q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True
+        ).execute().get("files", [])
+        if not files:
+            print(f"Host image {host_filename} not found in Google Drive YT_Cloud_Factory/hosts/")
+            return False
+        request = drive.files().get_media(fileId=files[0]["id"], supportsAllDrives=True)
+        with io.FileIO(dest_path, "wb") as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+        print(f"Downloaded host portrait {host_filename} from Google Drive!")
+        return True
+    except Exception as e:
+        print(f"Drive host download note for {host_filename}: {e}")
+        return False
+
 def file_exists_in_drive(drive, folder_id, filename):
     q = f"name='{filename}' and '{folder_id}' in parents and trashed=false"
     res = drive.files().list(
@@ -125,10 +149,17 @@ def render_episode(script_json_path):
     if not yt_token:
         raise ValueError(f"Missing YouTube Refresh Token secret for channel: {handle}")
 
-    default_theme, default_accent = DEFAULT_THEMES.get(handle, ("glass_neon", "#38BDF8"))
+    drive = build_service("drive", "v3", DRIVE_REFRESH_TOKEN)
+    youtube = build_service("youtube", "v3", yt_token)
+
+    default_theme, default_accent, default_host_img, default_host_name, default_voice = DEFAULT_THEMES.get(
+        handle, ("glass_neon", "#38BDF8", "hosts/capledger.png", handle, "en-US-AndrewMultilingualNeural")
+    )
     theme = data.get("theme", default_theme)
     accent_color = data.get("accent_color", default_accent)
-    voice = data.get("voice_id", "en-US-AvaMultilingualNeural")
+    host_src = data.get("host_image", default_host_img)
+    host_name = data.get("host_name", default_host_name)
+    voice = data.get("voice_id", default_voice)
     aspect = data.get("aspect_ratio", "16:9")
     width, height = (1080, 1920) if aspect == "9:16" else (1920, 1080)
 
@@ -136,6 +167,16 @@ def render_episode(script_json_path):
     if os.path.exists(public_assets_dir):
         shutil.rmtree(public_assets_dir)
     os.makedirs(public_assets_dir, exist_ok=True)
+
+    host_rel_path = None
+    if host_src:
+        host_filename = os.path.basename(host_src)
+        dest_host_path = os.path.join(public_assets_dir, host_filename)
+        if os.path.exists(host_src):
+            shutil.copy2(host_src, dest_host_path)
+            host_rel_path = f"assets/{host_filename}"
+        elif download_host_from_drive(drive, host_filename, dest_host_path):
+            host_rel_path = f"assets/{host_filename}"
 
     remotion_scenes = []
     cursor_sec = 0.0
@@ -169,6 +210,8 @@ def render_episode(script_json_path):
     props_payload = {
         "channelHandle": handle,
         "episodeTitle": data["title_options"][0],
+        "hostImage": host_rel_path,
+        "hostName": host_name,
         "theme": theme,
         "accentColor": accent_color,
         "width": width,
@@ -200,9 +243,6 @@ def render_episode(script_json_path):
         "-map", "0:v", "-map", "[aout]",
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", final_mp4
     ], check=True)
-
-    drive = build_service("drive", "v3", DRIVE_REFRESH_TOKEN)
-    youtube = build_service("youtube", "v3", yt_token)
 
     sub_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, data["drive_folder"])
     upload_to_drive(drive, sub_id, final_mp4, "video/mp4")
