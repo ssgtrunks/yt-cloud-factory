@@ -4,6 +4,7 @@ import sys
 import glob
 import json
 import shutil
+import hashlib
 import asyncio
 import subprocess
 import edge_tts
@@ -121,6 +122,59 @@ def upload_to_drive(drive, folder_id, file_path, mime_type):
     uploaded = drive.files().create(body=meta, media_body=media, fields="id", supportsAllDrives=True).execute()
     print(f"Backed up to 5TB Google Drive (ID: {uploaded['id']})")
 
+def download_music_from_drive(drive, seed, dest_path):
+    """Picks one royalty-free track from YT_Cloud_Factory/music/ (stable per episode)."""
+    try:
+        music_folder_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, "music")
+        q = f"'{music_folder_id}' in parents and trashed=false and (mimeType contains 'audio/' or name contains '.mp3' or name contains '.wav' or name contains '.m4a')"
+        files = drive.files().list(
+            q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True, orderBy="name"
+        ).execute().get("files", [])
+        if not files:
+            print("No music tracks found in Google Drive YT_Cloud_Factory/music/ - rendering voice only")
+            return None
+        pick = files[int(hashlib.md5(seed.encode()).hexdigest(), 16) % len(files)]
+        request = drive.files().get_media(fileId=pick["id"], supportsAllDrives=True)
+        with io.FileIO(dest_path, "wb") as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+        print(f"Music bed: {pick['name']}")
+        return dest_path
+    except Exception as e:
+        print(f"Music download note: {e}")
+        return None
+
+def render_thumbnail(data, theme, accent_color, out_path):
+    """Renders a 1280x720 PNG thumbnail with the Remotion 'Thumbnail' still."""
+    props = {
+        "thumbnailText": data.get("thumbnail_text") or data["title_options"][0],
+        "subText": data.get("thumbnail_subtext", ""),
+        "highlightWord": data.get("thumbnail_highlight", ""),
+        "ringText": data.get("thumbnail_ring_text", ""),
+        "channelHandle": data["channel_handle"],
+        "theme": theme,
+        "accentColor": accent_color,
+    }
+    props_path = "/tmp/thumb_props.json"
+    with open(props_path, "w", encoding="utf-8") as f:
+        json.dump(props, f)
+    try:
+        subprocess.run(["npx", "remotion", "still", "remotion/index.ts", "Thumbnail", out_path,
+                        f"--props={props_path}"], check=True)
+        return out_path
+    except Exception as e:
+        print(f"Thumbnail render note: {e}")
+        return None
+
+def set_youtube_thumbnail(youtube, video_id, thumb_path):
+    try:
+        youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumb_path, mimetype="image/png")).execute()
+        print("Custom thumbnail set on YouTube")
+    except Exception as e:
+        print(f"Thumbnail upload note (channel may need phone verification for custom thumbnails): {e}")
+
 def upload_to_youtube(youtube, video_path, data):
     body = {
         "snippet": {
@@ -139,6 +193,7 @@ def upload_to_youtube(youtube, video_path, data):
     media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype="video/mp4")
     response = youtube.videos().insert(part="snippet,status", body=body, media_body=media).execute()
     print(f"Uploaded to {data['channel_handle']}! Video ID: {response['id']}")
+    return response["id"]
 
 def render_episode(script_json_path):
     with open(script_json_path, "r", encoding="utf-8") as f:
@@ -231,23 +286,36 @@ def render_episode(script_json_path):
         raw_remotion_mp4, f"--props={props_file}", "--crf=18", "--concurrency=2"
     ], check=True)
 
-    total_dur = get_duration(raw_remotion_mp4)
     final_mp4 = f"/tmp/{data['drive_folder']}_{data['episode_id']}.mp4"
-    ambient_expr = (
-        f"aevalsrc=0.012*sin(2*PI*110*t)+0.008*sin(2*PI*164.81*t)"
-        f"+0.006*sin(2*PI*220*t):s=44100:d={total_dur}"
-    )
-    subprocess.run([
-        "ffmpeg", "-y", "-i", raw_remotion_mp4, "-f", "lavfi", "-i", ambient_expr,
-        "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]",
-        "-map", "0:v", "-map", "[aout]",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", final_mp4
-    ], check=True)
+    music_path = download_music_from_drive(drive, f"{handle}-{data['episode_id']}", "/tmp/music_bed")
+    if music_path:
+        # Music loops under the voice, sits ~20 dB down and ducks further while the narrator speaks.
+        subprocess.run([
+            "ffmpeg", "-y", "-i", raw_remotion_mp4, "-stream_loop", "-1", "-i", music_path,
+            "-filter_complex",
+            "[1:a]volume=0.22,afade=t=in:d=2[m];"
+            "[0:a]asplit=2[v][sc];"
+            "[m][sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[duck];"
+            "[v][duck]amix=inputs=2:duration=first:normalize=0,afade=t=out:st={fo}:d=2[aout]".format(
+                fo=max(0.0, get_duration(raw_remotion_mp4) - 2)),
+            "-map", "0:v", "-map", "[aout]",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", final_mp4
+        ], check=True)
+    else:
+        subprocess.run([
+            "ffmpeg", "-y", "-i", raw_remotion_mp4, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", final_mp4
+        ], check=True)
+
+    thumb_png = render_thumbnail(data, theme, accent_color, f"/tmp/{data['drive_folder']}_{data['episode_id']}_thumb.png")
 
     sub_id = get_or_create_drive_subfolder(drive, DRIVE_ROOT_ID, data["drive_folder"])
     upload_to_drive(drive, sub_id, final_mp4, "video/mp4")
     upload_to_drive(drive, sub_id, script_json_path, "application/json")
-    upload_to_youtube(youtube, final_mp4, data)
+    if thumb_png:
+        upload_to_drive(drive, sub_id, thumb_png, "image/png")
+    video_id = upload_to_youtube(youtube, final_mp4, data)
+    if thumb_png:
+        set_youtube_thumbnail(youtube, video_id, thumb_png)
 
 def run_auto_next_queue():
     drive = build_service("drive", "v3", DRIVE_REFRESH_TOKEN)
