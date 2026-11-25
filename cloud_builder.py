@@ -195,6 +195,21 @@ def upload_to_youtube(youtube, video_path, data):
     print(f"Uploaded to {data['channel_handle']}! Video ID: {response['id']}")
     return response["id"]
 
+def build_chapters(scenes_meta, remotion_scenes):
+    """YouTube chapters from scene 'chapter' fields: first at 00:00, >=10s apart, min 3."""
+    marks = []
+    for meta, rs in zip(scenes_meta, remotion_scenes):
+        title = (meta.get("chapter") or "").strip()
+        if not title:
+            continue
+        t = 0 if not marks else int(rs["startSec"])
+        if marks and t - marks[-1][0] < 10:
+            continue
+        marks.append((t, title))
+    if len(marks) < 3:
+        return ""
+    return "\n".join(f"{t // 60:02d}:{t % 60:02d} {title}" for t, title in marks)
+
 def render_episode(script_json_path):
     with open(script_json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -261,6 +276,12 @@ def render_episode(script_json_path):
             "words": words,
         })
         cursor_sec += dur
+
+    if "{{CHAPTERS}}" in data.get("seo_description", ""):
+        data["seo_description"] = data["seo_description"].replace(
+            "{{CHAPTERS}}", build_chapters(data["scenes"], remotion_scenes)
+        ).strip()
+        print("Chapters:\n" + data["seo_description"])
 
     props_payload = {
         "channelHandle": handle,
