@@ -1,0 +1,683 @@
+{
+  "channel_handle": "@WorkflowStack-AI",
+  "niche": "ai",
+  "drive_folder": "02_WorkflowStack_AI",
+  "episode_id": "ep06",
+  "format": "long_form",
+  "aspect_ratio": "16:9",
+  "voice_id": "en-US-BrianNeural",
+  "theme": "cyber_dark",
+  "accent_color": "#10B981",
+  "made_for_kids": false,
+  "contains_synthetic_media": true,
+  "inspiration_angle": "The niche's biggest breakouts are 'make videos with Claude' workflows; this episode is the true, unpolished build log of a real Claude-built cloud video pipeline, including its failures and YouTube's inauthentic-content rules.",
+  "title_options": [
+    "I Built a YouTube Factory With Claude That Runs While My Laptop Is Off",
+    "I Automated a YouTube Channel With Claude. Version 1 Was a Disaster.",
+    "My Laptop Was Off. This Video Still Made Itself."
+  ],
+  "thumbnail_prompt": "Dark green cyber background, huge white text MY LAPTOP WAS OFF with OFF highlighted in green, glowing ring containing $0",
+  "thumbnail_text": "MY LAPTOP WAS OFF",
+  "thumbnail_highlight": "OFF",
+  "thumbnail_subtext": "This video made itself (with Claude)",
+  "thumbnail_ring_text": "$0",
+  "seo_description": "I built a pipeline with Claude that turns a script file into a finished YouTube draft on a free cloud machine: neural voice, motion graphics, captions, a thumbnail and backups, all from one GitHub commit. This is the honest build log, including the first version that looked like AI slop, the bugs that nearly broke everything, and the YouTube monetization rule that changed how the whole system works.\n\nYou'll see the free stack (GitHub Actions, a neural text-to-speech library, Remotion, Google Drive and the YouTube Data API), what each piece costs, the research behind the topic (2,368 videos across 122 channels), and the limits I haven't solved yet.\n\nThe narration voice is synthetic. Every script is researched with AI and reviewed by a human before it's rendered.\n\nChapters\n{{CHAPTERS}}\n\n#ClaudeAI #AIAutomation #GitHubActions #Remotion #WorkflowStack",
+  "tags": [
+    "claude ai",
+    "ai automation",
+    "youtube automation",
+    "github actions",
+    "remotion",
+    "faceless youtube",
+    "ai workflow",
+    "workflowstack"
+  ],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "callout_text": "01 // THE EXPERIMENT",
+      "visual_query": "cloud server",
+      "chart": {
+        "type": "terminal",
+        "title": "github-actions — ubuntu-latest",
+        "commands": [
+          "$ git push scripts/ep06.json",
+          "> cloud machine booting...",
+          "> voice + animation + captions",
+          "✓ private draft uploaded to YouTube"
+        ]
+      },
+      "narration": "This video was produced by a pipeline I built with Claude. It rendered on a cloud computer, so my laptop could have been switched off the whole time. The first version was so bad it wouldn't have been eligible to earn a single cent. So here's exactly how it works, what broke, and what I changed.",
+      "chapter": "Why I built a video robot"
+    },
+    {
+      "scene_number": 2,
+      "callout_text": "02 // THE IDEA",
+      "visual_query": "laptop desk",
+      "chart": {
+        "type": "timeline",
+        "title": "One Script In, One Draft Out",
+        "steps": [
+          {
+            "step": "STEP 1",
+            "title": "Write the script",
+            "detail": "Scenes, narration and charts as data"
+          },
+          {
+            "step": "STEP 2",
+            "title": "Push to GitHub",
+            "detail": "One commit starts the build"
+          },
+          {
+            "step": "STEP 3",
+            "title": "Cloud render",
+            "detail": "Voice, motion graphics, captions"
+          },
+          {
+            "step": "STEP 4",
+            "title": "Private draft",
+            "detail": "Waits in YouTube Studio for review"
+          }
+        ]
+      },
+      "narration": "The idea is simple. I write a script as a structured file, where every scene gets narration, a chart and a caption. I push that file to GitHub. A cloud computer wakes up, records a voice, animates the visuals and uploads a private draft. My job is the part a machine can't do: deciding what's worth saying."
+    },
+    {
+      "scene_number": 3,
+      "callout_text": "03 // THE STACK",
+      "visual_query": "server room",
+      "chart": {
+        "type": "mindmap",
+        "title": "Five Free Pieces, One Pipeline",
+        "center_node": "One JSON Script",
+        "branch_nodes": [
+          "GitHub Actions runner",
+          "Neural text-to-speech",
+          "Remotion motion graphics",
+          "Drive + YouTube APIs"
+        ]
+      },
+      "narration": "Five pieces make this work, and every one is free to start. GitHub Actions provides the cloud computer. A neural text to speech library reads the script. Remotion turns React code into video frames. Google Drive keeps a backup of every file. And the YouTube API stages the finished video as a private draft for me to check.",
+      "chapter": "The free stack behind it"
+    },
+    {
+      "scene_number": 4,
+      "callout_text": "04 // THE ENGINE",
+      "visual_query": "data center",
+      "chart": {
+        "type": "kpi",
+        "title": "One Real Test Run, Measured",
+        "subtitle": "GitHub Actions job for a 46-second test video",
+        "labels": [
+          "Machine setup",
+          "Render + upload",
+          "Runner cost"
+        ],
+        "values": [
+          1,
+          2.5,
+          0
+        ],
+        "prefixes": [
+          "",
+          "",
+          "$"
+        ],
+        "units": [
+          " min",
+          " min",
+          ""
+        ]
+      },
+      "narration": "GitHub Actions is the engine. Every time a new script lands in the repository, it boots a fresh Ubuntu machine, installs FFmpeg, Node and Python, then runs my build script. When the job finishes, the machine is thrown away. Standard runners cost nothing on a public repository, which is why the render bill for this video is zero."
+    },
+    {
+      "scene_number": 5,
+      "callout_text": "05 // THE SCHEDULE",
+      "visual_query": "calendar",
+      "chart": {
+        "type": "terminal",
+        "title": "cron — every Sunday 04:30 UTC",
+        "commands": [
+          "$ python cloud_builder.py AUTO_NEXT",
+          "> checking Drive for unrendered scripts...",
+          "> found the next episode in the queue",
+          "✓ rendering one episode per channel"
+        ]
+      },
+      "narration": "There's also a schedule. Every Sunday at ten in the morning, India time, a timed job wakes the same machine without any commit at all. It checks Google Drive for scripts that haven't been rendered yet, picks the next one in each channel's queue, and builds it. If the queue is empty, it simply does nothing."
+    },
+    {
+      "scene_number": 6,
+      "callout_text": "06 // THE VOICE",
+      "visual_query": "microphone studio",
+      "chart": {
+        "type": "terminal",
+        "title": "tts — en-US-BrianNeural",
+        "commands": [
+          "$ generate narration for this scene",
+          "> streaming audio chunks...",
+          "> recording when every word starts and ends",
+          "✓ audio file + word timings saved"
+        ]
+      },
+      "narration": "The voice you're hearing is synthetic. It comes from a free neural text to speech library, and the clever part is the timing data. As it speaks, it reports exactly when each word starts and ends. That timing drives the captions under this sentence, highlighting every word in yellow at the moment it's spoken."
+    },
+    {
+      "scene_number": 7,
+      "callout_text": "07 // VIDEO AS CODE",
+      "visual_query": "code screen",
+      "chart": {
+        "type": "versus",
+        "title": "Editing Software vs Video as Code",
+        "left_title": "Traditional editing",
+        "left_points": [
+          "Clips dragged onto a timeline by hand",
+          "Every video built from scratch",
+          "Your computer does the rendering"
+        ],
+        "right_title": "Video as code",
+        "right_points": [
+          "Scenes described as data",
+          "Same components, new content",
+          "A cloud machine does the rendering"
+        ]
+      },
+      "narration": "The visuals are where it gets interesting. Remotion lets you describe a video in React, the same code used to build websites. Every chart, card and animation is a component, and a headless Chrome browser captures it thirty times per second. Claude wrote most of these components, and I reviewed and fixed what it got wrong."
+    },
+    {
+      "scene_number": 8,
+      "callout_text": "08 // THE PACING",
+      "visual_query": "film reel",
+      "chart": {
+        "type": "kpi",
+        "title": "How Each Scene Is Sized",
+        "subtitle": "Rules every script has to follow",
+        "labels": [
+          "Words per scene, min",
+          "Words per scene, max",
+          "Seconds on screen, approx."
+        ],
+        "values": [
+          45,
+          65,
+          20
+        ],
+        "units": [
+          "",
+          "",
+          " sec"
+        ]
+      },
+      "narration": "Each scene is deliberately short. A scene holds between forty five and sixty five words of narration, which works out to roughly twenty seconds on screen. Then the visual changes. That rule exists because a viewer's attention drifts when the picture stays still, and a still picture is exactly what automated videos are known for."
+    },
+    {
+      "scene_number": 9,
+      "callout_text": "09 // VERSION ONE",
+      "visual_query": "empty office",
+      "chart": {
+        "type": "kpi",
+        "title": "The First Test Video",
+        "subtitle": "What the very first render actually looked like",
+        "labels": [
+          "Runtime",
+          "Scenes",
+          "Custom thumbnails"
+        ],
+        "values": [
+          46,
+          4,
+          0
+        ],
+        "units": [
+          " sec",
+          "",
+          ""
+        ]
+      },
+      "narration": "Here's the uncomfortable part. The first test video was forty six seconds long, built from plain text cards sitting on a grid. It looked automated, because it was. If you've ever clicked on a faceless channel and left after five seconds, you already know exactly what it felt like to watch that first version.",
+      "chapter": "Version one was a disaster"
+    },
+    {
+      "scene_number": 10,
+      "callout_text": "10 // WHAT WAS WRONG",
+      "visual_query": "broken glass",
+      "chart": {
+        "type": "bento_grid",
+        "title": "Four Problems In 46 Seconds",
+        "bento_items": [
+          {
+            "badge": "PACKAGING",
+            "title": "No thumbnail at all",
+            "metric": "0",
+            "highlight": true
+          },
+          {
+            "badge": "AUDIO",
+            "title": "Three-sine-wave hum",
+            "metric": "HUM",
+            "highlight": true
+          },
+          {
+            "badge": "TRUST",
+            "title": "Unmeasured numbers",
+            "metric": "✕",
+            "highlight": false
+          },
+          {
+            "badge": "VISUALS",
+            "title": "Text cards only",
+            "metric": "FLAT",
+            "highlight": false
+          }
+        ]
+      },
+      "narration": "When I looked closer, the problems stacked up. There was no thumbnail, so YouTube would pick a random frame. Under the voice sat a constant hum made from three sine waves, meant to pass as ambient music. And some charts showed numbers nobody had measured, which is the fastest way to lose a viewer's trust."
+    },
+    {
+      "scene_number": 11,
+      "callout_text": "11 // BUG ONE",
+      "visual_query": "error screen",
+      "chart": {
+        "type": "terminal",
+        "title": "cloud_builder.py — line 36",
+        "commands": [
+          "$ token_uri = \"[https://oauth2...](https://oauth2...)\"",
+          "> requesting Google access token...",
+          "> invalid URL: every login fails",
+          "✓ fixed: plain https:// address restored"
+        ]
+      },
+      "narration": "Then came the bugs. The most confusing one was a single line. When code was pasted between tools, a web address was quietly converted into a markdown link, brackets and all. The script still looked fine at a glance, but every login to Google would have failed, so no video could ever have reached Drive or YouTube.",
+      "chapter": "The bugs nobody warns you about"
+    },
+    {
+      "scene_number": 12,
+      "callout_text": "12 // BUG TWO",
+      "visual_query": "keyboard typing",
+      "chart": {
+        "type": "timeline",
+        "title": "The Safety Net Every File Passes",
+        "steps": [
+          {
+            "step": "CHECK 1",
+            "title": "Repair paste damage",
+            "detail": "Fix quotes and broken attributes"
+          },
+          {
+            "step": "CHECK 2",
+            "title": "Type-check",
+            "detail": "TypeScript must compile cleanly"
+          },
+          {
+            "step": "CHECK 3",
+            "title": "Test bundle",
+            "detail": "Remotion must build the project"
+          },
+          {
+            "step": "CHECK 4",
+            "title": "Commit",
+            "detail": "Only verified files reach the cloud"
+          }
+        ]
+      },
+      "narration": "Pasting caused a second problem. Long code files kept getting cut off around twenty kilobytes, and some lines arrived scrambled, with quotes in the wrong places. The fix was boring but essential. Every file is now type checked and test bundled before it's committed, so a broken paste can never reach the render machine."
+    },
+    {
+      "scene_number": 13,
+      "callout_text": "13 // BUG THREE",
+      "visual_query": "stop sign",
+      "chart": {
+        "type": "kpi",
+        "title": "YouTube Data API: The Daily Budget",
+        "subtitle": "Default quota for a new Google Cloud project",
+        "labels": [
+          "Cost of one search",
+          "Daily budget",
+          "Searches per day, max"
+        ],
+        "values": [
+          100,
+          10000,
+          100
+        ],
+        "units": [
+          " units",
+          " units",
+          ""
+        ]
+      },
+      "narration": "The third wall was a quota. To research which videos actually perform, I pulled data from YouTube's own API, and it shut me out halfway through. Free API access comes with a daily budget, and a single search costs a hundred units. The research only finished the next day, after the budget reset at midnight Pacific time."
+    },
+    {
+      "scene_number": 14,
+      "callout_text": "14 // THE POLICY",
+      "visual_query": "courthouse",
+      "chart": {
+        "type": "versus",
+        "title": "What YouTube Will and Won't Pay For",
+        "left_title": "Not eligible to earn",
+        "left_points": [
+          "Same template on every video",
+          "Narrated slideshows at scale",
+          "No original insight"
+        ],
+        "right_title": "Eligible",
+        "right_points": [
+          "A different structure each episode",
+          "Real research and sources",
+          "A human's own perspective"
+        ]
+      },
+      "narration": "The biggest lesson wasn't technical. YouTube won't pay channels for what it calls inauthentic content: videos that look mass produced from a template, with little variation and no real insight. Its reviewers judge the whole channel, not one upload. So a factory that stamps out identical videos is building a channel that can never earn.",
+      "chapter": "The rule that kills most AI channels"
+    },
+    {
+      "scene_number": 15,
+      "callout_text": "15 // WHO DOES WHAT",
+      "visual_query": "teamwork",
+      "chart": {
+        "type": "bento_grid",
+        "title": "Automate the Labour, Keep the Judgement",
+        "bento_items": [
+          {
+            "badge": "AUTOMATED",
+            "title": "Voice + animation",
+            "metric": "BOT",
+            "highlight": false
+          },
+          {
+            "badge": "AUTOMATED",
+            "title": "Encoding + uploads",
+            "metric": "BOT",
+            "highlight": false
+          },
+          {
+            "badge": "HUMAN",
+            "title": "Topic + fact check",
+            "metric": "ME",
+            "highlight": true
+          },
+          {
+            "badge": "HUMAN",
+            "title": "Point of view",
+            "metric": "ME",
+            "highlight": true
+          }
+        ]
+      },
+      "narration": "That changed how I think about automation. The machine should handle the parts that are pure labour: recording, animating, encoding and uploading. The parts that decide whether a video deserves to exist, picking the topic, checking the facts and adding a point of view, stay with a human. In this pipeline, that human is me."
+    },
+    {
+      "scene_number": 16,
+      "callout_text": "16 // THE RESEARCH",
+      "visual_query": "magnifying glass",
+      "chart": {
+        "type": "kpi",
+        "title": "Before Writing a Single Word",
+        "subtitle": "Recent uploads from channels in the AI workflow niche",
+        "labels": [
+          "Videos analysed",
+          "Channels",
+          "Biggest breakout"
+        ],
+        "values": [
+          2368,
+          122,
+          51
+        ],
+        "units": [
+          "",
+          "",
+          " x"
+        ]
+      },
+      "narration": "So before writing this script, I did the research first. I pulled two thousand three hundred and sixty eight recent videos from a hundred and twenty two channels in the AI workflow niche. Then I ranked every video against its own channel's typical views, so a small channel's breakout counts as much as a big channel's normal day.",
+      "chapter": "What the research showed"
+    },
+    {
+      "scene_number": 17,
+      "callout_text": "17 // THE PATTERN",
+      "visual_query": "rocket launch",
+      "chart": {
+        "type": "beam_chart",
+        "title": "Breakouts: Views vs the Channel's Own Median",
+        "subtitle": "Long-form uploads since May 2026",
+        "labels": [
+          "Viral video with Claude",
+          "AI motion graphics",
+          "Animated shorts with Claude",
+          "Faceless shorts with Claude"
+        ],
+        "values": [
+          51,
+          35,
+          24,
+          13
+        ],
+        "unit": "x"
+      },
+      "narration": "The pattern was clear. The biggest breakout was a video about making a viral video using only Claude, at fifty one times its channel's usual views. Close behind were motion graphics with Claude and faceless shorts built with Claude. People don't just want AI news. They want to see the real workflow, mistakes included."
+    },
+    {
+      "scene_number": 18,
+      "callout_text": "18 // THUMBNAILS",
+      "visual_query": "camera lens",
+      "chart": {
+        "type": "terminal",
+        "title": "remotion still — Thumbnail",
+        "commands": [
+          "$ npx remotion still Thumbnail thumb.png",
+          "> 1280 x 720, four words, one highlighted",
+          "> backing up to Google Drive",
+          "✓ custom thumbnail set on the draft"
+        ]
+      },
+      "narration": "Next came packaging. Every video now gets a thumbnail generated by the same render engine: three or four huge words, one highlighted, high contrast, readable at the size of a phone search result. The pipeline uploads it with the video automatically, so nothing ships with a random frame ever again.",
+      "chapter": "What I changed"
+    },
+    {
+      "scene_number": 19,
+      "callout_text": "19 // NOTHING GOES PUBLIC",
+      "visual_query": "padlock",
+      "chart": {
+        "type": "versus",
+        "title": "Why Every Upload Starts Private",
+        "left_title": "Auto-publishing",
+        "left_points": [
+          "Mistakes go live instantly",
+          "No chance to check facts",
+          "Bad uploads hurt the whole channel"
+        ],
+        "right_title": "Private draft first",
+        "right_points": [
+          "Watched before release",
+          "Flagged as synthetic media",
+          "Published by a human click"
+        ]
+      },
+      "narration": "One rule never changes: nothing goes public on its own. Every upload lands as a private draft, already flagged to YouTube as containing synthetic media, because the voice is generated. I watch it, fix anything that slipped through, and press publish myself. Automation that publishes mistakes instantly is how channels get buried."
+    },
+    {
+      "scene_number": 20,
+      "callout_text": "20 // SOUND",
+      "visual_query": "headphones",
+      "chart": {
+        "type": "timeline",
+        "title": "How the Music Bed Is Mixed",
+        "steps": [
+          {
+            "step": "01",
+            "title": "Pick a track",
+            "detail": "Royalty-free, from a Drive folder"
+          },
+          {
+            "step": "02",
+            "title": "Loop + fade in",
+            "detail": "Fills the full runtime"
+          },
+          {
+            "step": "03",
+            "title": "Duck under voice",
+            "detail": "Drops whenever narration plays"
+          },
+          {
+            "step": "04",
+            "title": "Fade out",
+            "detail": "Two-second clean ending"
+          }
+        ]
+      },
+      "narration": "The sine wave hum is gone too. Now the pipeline pulls a royalty free instrumental track from a music folder, loops it well below the narration, and ducks it even further whenever the voice is speaking. It's a small change, but audio is usually the first thing that makes a video feel cheap."
+    },
+    {
+      "scene_number": 21,
+      "callout_text": "21 // WORKING WITH CLAUDE",
+      "visual_query": "handshake",
+      "chart": {
+        "type": "bento_grid",
+        "title": "Who Did What on This Video",
+        "bento_items": [
+          {
+            "badge": "CLAUDE",
+            "title": "Rendering code",
+            "metric": "CODE",
+            "highlight": false
+          },
+          {
+            "badge": "CLAUDE",
+            "title": "Niche research",
+            "metric": "DATA",
+            "highlight": false
+          },
+          {
+            "badge": "CLAUDE",
+            "title": "Script draft",
+            "metric": "DRAFT",
+            "highlight": false
+          },
+          {
+            "badge": "HUMAN",
+            "title": "Final say",
+            "metric": "ME",
+            "highlight": true
+          }
+        ]
+      },
+      "narration": "Claude's role is worth being precise about. It wrote most of the rendering code, ran the research and drafted this script. It also caught several of my mistakes, including a title promising 4K when the pipeline actually renders 1080p. What it doesn't do is decide what this channel stands for. That part is still mine."
+    },
+    {
+      "scene_number": 22,
+      "callout_text": "22 // THE HUMAN STEP",
+      "visual_query": "notebook pen",
+      "chart": {
+        "type": "mindmap",
+        "title": "The One Step I Refuse to Automate",
+        "center_node": "Human Review",
+        "branch_nodes": [
+          "Cut what's wrong",
+          "Add my own take",
+          "Check every number",
+          "Approve the commit"
+        ]
+      },
+      "narration": "And the most important change is the slowest one. Every script, including this one, is drafted by Claude from real research, then reviewed by me before it's committed. I cut what's wrong, add what I actually think and check every number. Only then does the machine take over. It's the one step I refuse to automate."
+    },
+    {
+      "scene_number": 23,
+      "callout_text": "23 // THE BILL",
+      "visual_query": "calculator",
+      "chart": {
+        "type": "bento_grid",
+        "title": "What This Pipeline Costs to Run",
+        "bento_items": [
+          {
+            "badge": "COMPUTE",
+            "title": "GitHub Actions",
+            "metric": "$0",
+            "highlight": true
+          },
+          {
+            "badge": "VOICE",
+            "title": "Neural TTS library",
+            "metric": "$0",
+            "highlight": true
+          },
+          {
+            "badge": "ANIMATION",
+            "title": "Remotion",
+            "metric": "$0",
+            "highlight": true
+          },
+          {
+            "badge": "STORAGE",
+            "title": "Google Drive",
+            "metric": "PLAN",
+            "highlight": false
+          }
+        ]
+      },
+      "narration": "So what does it actually cost? The cloud machine is free on a public repository. The voice library is free. Remotion is free for individuals and very small teams. Storage uses a Google Drive plan I already pay for. The real cost is time: writing, reviewing, and fixing whatever broke that week.",
+      "chapter": "What it really costs"
+    },
+    {
+      "scene_number": 24,
+      "callout_text": "24 // THE LIMITS",
+      "visual_query": "hourglass",
+      "chart": {
+        "type": "kpi",
+        "title": "The Honest Limits",
+        "subtitle": "Measured on GitHub's standard Linux runner",
+        "labels": [
+          "Render speed",
+          "8-minute video, approx.",
+          "Screen recordings"
+        ],
+        "values": [
+          10,
+          25,
+          0
+        ],
+        "units": [
+          " fps",
+          " min",
+          ""
+        ]
+      },
+      "narration": "There are limits. Rendering runs at roughly ten frames per second, so an eight minute video takes around twenty five minutes in the cloud. The free API budget caps how much research I can do each day. And the pipeline can't screen record yet, so it can't make click by click tutorials."
+    },
+    {
+      "scene_number": 25,
+      "callout_text": "25 // EPISODE TWO",
+      "visual_query": "road horizon",
+      "chart": {
+        "type": "timeline",
+        "title": "The Roadmap From Here",
+        "steps": [
+          {
+            "step": "NEXT",
+            "title": "Real footage",
+            "detail": "Archive and space footage in scenes"
+          },
+          {
+            "step": "THEN",
+            "title": "Varied layouts",
+            "detail": "No two episodes look alike"
+          },
+          {
+            "step": "AFTER",
+            "title": "Retention review",
+            "detail": "Find the second viewers leave"
+          },
+          {
+            "step": "GOAL",
+            "title": "Episode two",
+            "detail": "Real numbers from this channel"
+          }
+        ]
+      },
+      "narration": "Next, I'm adding real footage and more varied layouts, so no two episodes look alike, and I'll use this video's retention graph to find the exact second people leave. If you want the follow up, with real numbers from this channel, subscribe, and tell me in the comments which part you'd automate first.",
+      "chapter": "What's next"
+    }
+  ]
+}
