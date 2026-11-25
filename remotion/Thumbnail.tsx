@@ -33,7 +33,9 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({
   const words = (thumbnailText || "").toUpperCase().split(/\s+/).filter(Boolean).slice(0, 4);
   const hl = (highlightWord || words[words.length - 1] || "").toUpperCase();
   const longest = Math.max(...words.map((w) => w.length), 1);
-  const fontSize = Math.min(190, Math.floor(1100 / Math.max(longest, 5)));
+  // Fit both width (longest word) and height (number of lines above the subtext bar).
+  const maxHeight = subText ? 470 : 560;
+  const fontSize = Math.min(190, Math.floor(1100 / Math.max(longest, 5)), Math.floor(maxHeight / (words.length * 1.12)));
 
   return (
     <AbsoluteFill
